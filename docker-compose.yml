@@ -1,0 +1,40 @@
+name: resonar
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: "*"
+      STREAM_CACHE_TTL: "18000"
+      # Point this at a cookies.txt (Netscape format) if extraction starts
+      # failing with "Sign in to confirm you're not a bot". Put the file in
+      # ./config/ and uncomment:
+      # YTDLP_COOKIES: /config/cookies.txt
+    volumes:
+      - ./config:/config:ro
+      - ./media:/media
+      - ./data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - backend

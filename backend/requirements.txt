@@ -1,0 +1,9 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+ytmusicapi==1.10.2
+redis==5.2.1
+pydantic-settings==2.7.1
+# Unpinned on purpose: YouTube changes constantly and only a fresh yt-dlp keeps
+# extraction working. Rebuild the backend image periodically to pull the latest.
+yt-dlp

@@ -1,0 +1,78 @@
+export interface Track {
+  id: string;
+  title: string;
+  artists: string[];
+  album?: string | null;
+  duration?: string | null;
+  durationSeconds?: number | null;
+  thumbnail?: string | null;
+}
+
+export interface VideoItem {
+  id: string;
+  title: string;
+  uploader?: string | null;
+  duration?: string | null;
+  durationSeconds?: number | null;
+  views?: number | null;
+  thumbnail: string;
+}
+
+export interface SavedVideo {
+  id: string;
+  title?: string | null;
+  uploader?: string | null;
+  duration?: string | null;
+  durationSeconds?: number | null;
+  thumbnail: string;
+  status: "downloading" | "ready" | "error";
+  progress?: string | null;
+  error?: string | null;
+  quality?: number;
+  height?: number | null;
+  size?: number;
+  savedAt?: number;
+}
+
+export interface PlaylistSummary {
+  id: string;
+  name: string;
+  count: number;
+  thumbnail?: string | null;
+  updatedAt: number;
+}
+
+export interface Playlist extends PlaylistSummary {
+  tracks: Track[];
+  createdAt: number;
+}
+
+export interface LyricLine {
+  time: number;
+  text: string;
+}
+
+export interface Lyrics {
+  synced: LyricLine[];
+  plain: string | null;
+  source: string | null;
+}
+
+export interface BatchStatus {
+  status: "downloading" | "ready" | "error";
+  progress?: { done: number; total: number } | null;
+  error?: string | null;
+  ready: boolean;
+}
+
+export interface AppSettings {
+  listenbrainz: { enabled: boolean; hasToken: boolean };
+  lastfm: {
+    enabled: boolean;
+    hasKeys: boolean;
+    connected: boolean;
+    username: string;
+  };
+}
+
+export type DownloadFormat = "mp3" | "m4a" | "opus" | "flac";

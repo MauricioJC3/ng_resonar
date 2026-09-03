@@ -1,0 +1,151 @@
+import type { ReactElement } from "react";
+
+const PATHS: Record<string, ReactElement> = {
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.35-4.35" />
+    </>
+  ),
+  x: (
+    <>
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </>
+  ),
+  heart: (
+    <path d="M20.8 5.1a5.4 5.4 0 0 0-7.7 0L12 6.2l-1.1-1.1a5.4 5.4 0 1 0-7.7 7.7L12 21.7l8.8-8.9a5.4 5.4 0 0 0 0-7.7Z" />
+  ),
+  download: (
+    <>
+      <path d="M12 3v12" />
+      <path d="m7 11 5 5 5-5" />
+      <path d="M5 21h14" />
+    </>
+  ),
+  play: <path d="M8 5v14l11-7z" />,
+  pause: (
+    <>
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+    </>
+  ),
+  skipBack: (
+    <>
+      <path d="M18 19 8 12l10-7z" />
+      <rect x="5" y="5" width="2" height="14" rx="1" />
+    </>
+  ),
+  skipForward: (
+    <>
+      <path d="m6 5 10 7-10 7z" />
+      <rect x="17" y="5" width="2" height="14" rx="1" />
+    </>
+  ),
+  back: <path d="M15 18 9 12l6-6" />,
+  video: (
+    <>
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+      <path d="m16 10 6-3v10l-6-3" />
+    </>
+  ),
+  radio: (
+    <>
+      <circle cx="12" cy="13.5" r="2.6" />
+      <path d="M7.8 9.3a6 6 0 0 1 8.4 0" />
+      <path d="M5 6.5a10 10 0 0 1 14 0" />
+    </>
+  ),
+  queue: (
+    <>
+      <path d="M4 7h11" />
+      <path d="M4 12h11" />
+      <path d="M4 17h7" />
+      <path d="m16 14 5 3-5 3z" />
+    </>
+  ),
+  list: (
+    <>
+      <path d="M8 6h13" />
+      <path d="M8 12h13" />
+      <path d="M8 18h13" />
+      <path d="M3.5 6h.01" />
+      <path d="M3.5 12h.01" />
+      <path d="M3.5 18h.01" />
+    </>
+  ),
+  lyrics: (
+    <>
+      <path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" />
+      <path d="M8 9h8" />
+      <path d="M8 13h5" />
+    </>
+  ),
+  level: (
+    <>
+      <path d="M5 21v-7" />
+      <path d="M5 10V3" />
+      <path d="M12 21v-9" />
+      <path d="M12 8V3" />
+      <path d="M19 21v-5" />
+      <path d="M19 12V3" />
+      <path d="M2.5 14h5" />
+      <path d="M9.5 8h5" />
+      <path d="M16.5 16h5" />
+    </>
+  ),
+  plus: (
+    <>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </>
+  ),
+  pencil: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M6 6l1 14h10l1-14" />
+    </>
+  ),
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" />
+    </>
+  ),
+};
+
+const FILLED = new Set(["play", "pause", "skipBack", "skipForward"]);
+
+export default function Icon({
+  name,
+  size = 18,
+  filled,
+}: {
+  name: keyof typeof PATHS | string;
+  size?: number;
+  filled?: boolean;
+}) {
+  const solid = filled ?? FILLED.has(name);
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={solid ? "currentColor" : "none"}
+      stroke={solid ? "none" : "currentColor"}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {PATHS[name] ?? null}
+    </svg>
+  );
+}
