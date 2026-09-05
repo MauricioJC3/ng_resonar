@@ -1,0 +1,155 @@
+/* ===================================================================
+   DESIGN TOKENS - "cool & serene"
+   Block 1  : bare :root            = LIGHT set + theme-invariant tokens
+   Block 2  : @media (prefers-color-scheme: dark) :root:not([data-theme="light"])
+   Block 3a : :root[data-theme="dark"]   (verbatim copy of Block 2 body)
+   Block 3b : :root[data-theme="light"]  (re-asserts the light set)
+   =================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- LIGHT surface / line / text / accent set (approved mockup) ---- */
+  --bg: #f1f4f3;
+  --bg-elev: #fbfdfc;
+  --bg-elev-2: #e8eeec;
+  --line: #d7e0dd;
+  --line-soft: #e4ebe9;
+  --text: #1b2422;
+  --text-dim: #55635f;
+  --text-faint: #85938f;
+  --accent: #3e7a6e;
+  --accent-soft: #5e9a8c;
+  --accent-wash: rgba(62, 122, 110, 0.1);
+  --accent-2: #5a97a6;
+  --danger: #b4674f;
+  --shadow:
+    0 1px 2px rgba(30, 50, 45, 0.06),
+    0 18px 40px -14px rgba(30, 50, 45, 0.18);
+
+  /* ---- theme-invariant tokens ---- */
+  --radius: 14px;
+  --on-media: #f4f7f6;
+  --stage-bg: #000000;
+  --scrim: rgba(0, 0, 0, 0.5);
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-ui: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ---- Plyr, LIGHT ---- */
+  --plyr-color-main: var(--accent);
+  --plyr-audio-controls-background: transparent;
+  --plyr-audio-control-color: var(--text-dim);
+  --plyr-audio-control-color-hover: var(--text);
+  --plyr-video-control-color: var(--on-media);
+  --plyr-video-control-color-hover: #f8faf9;
+  --plyr-video-controls-background: linear-gradient(
+    transparent,
+    rgba(8, 12, 12, 0.55)
+  );
+  --plyr-menu-background: var(--bg-elev-2);
+  --plyr-menu-color: var(--text-dim);
+  --plyr-range-track-height: 5px;
+  --plyr-range-thumb-height: 13px;
+  --plyr-font-family: inherit;
+}
+
+/* Block 2 - OS reports dark AND the user has not forced light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #0e1414;
+    --bg-elev: #141b1a;
+    --bg-elev-2: #1b2523;
+    --line: #2a3633;
+    --line-soft: #212c2a;
+    --text: #e6edeb;
+    --text-dim: #93a5a1;
+    --text-faint: #677975;
+    --accent: #6da89b;
+    --accent-soft: #8fc3b7;
+    --accent-wash: rgba(109, 168, 155, 0.12);
+    --accent-2: #7fb6c4;
+    --danger: #d98c7a;
+    --shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 20px 48px -16px rgba(0, 0, 0, 0.6);
+
+    --plyr-color-main: var(--accent);
+    --plyr-audio-control-color: var(--text-dim);
+    --plyr-audio-control-color-hover: var(--text);
+    --plyr-video-control-color: var(--on-media);
+    --plyr-video-control-color-hover: #f8faf9;
+    --plyr-menu-background: var(--bg-elev-2);
+    --plyr-menu-color: var(--text-dim);
+  }
+}
+
+/* Block 3a - DARK SET - keep in sync with @media block */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e1414;
+  --bg-elev: #141b1a;
+  --bg-elev-2: #1b2523;
+  --line: #2a3633;
+  --line-soft: #212c2a;
+  --text: #e6edeb;
+  --text-dim: #93a5a1;
+  --text-faint: #677975;
+  --accent: #6da89b;
+  --accent-soft: #8fc3b7;
+  --accent-wash: rgba(109, 168, 155, 0.12);
+  --accent-2: #7fb6c4;
+  --danger: #d98c7a;
+  --shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 20px 48px -16px rgba(0, 0, 0, 0.6);
+
+  --plyr-color-main: var(--accent);
+  --plyr-audio-control-color: var(--text-dim);
+  --plyr-audio-control-color-hover: var(--text);
+  --plyr-video-control-color: var(--on-media);
+  --plyr-video-control-color-hover: #f8faf9;
+  --plyr-menu-background: var(--bg-elev-2);
+  --plyr-menu-color: var(--text-dim);
+}
+
+/* Block 3b - an explicit light choice beats a dark OS */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f1f4f3;
+  --bg-elev: #fbfdfc;
+  --bg-elev-2: #e8eeec;
+  --line: #d7e0dd;
+  --line-soft: #e4ebe9;
+  --text: #1b2422;
+  --text-dim: #55635f;
+  --text-faint: #85938f;
+  --accent: #3e7a6e;
+  --accent-soft: #5e9a8c;
+  --accent-wash: rgba(62, 122, 110, 0.1);
+  --accent-2: #5a97a6;
+  --danger: #b4674f;
+  --shadow:
+    0 1px 2px rgba(30, 50, 45, 0.06),
+    0 18px 40px -14px rgba(30, 50, 45, 0.18);
+
+  --plyr-color-main: var(--accent);
+  --plyr-audio-control-color: var(--text-dim);
+  --plyr-audio-control-color-hover: var(--text);
+  --plyr-video-control-color: var(--on-media);
+  --plyr-video-control-color-hover: #f8faf9;
+  --plyr-menu-background: var(--bg-elev-2);
+  --plyr-menu-color: var(--text-dim);
+}

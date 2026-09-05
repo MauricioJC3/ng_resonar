@@ -52,15 +52,15 @@ Chain strategy: pending
 
 ## Slice 2: Mechanical `styles.css` split (PR 2)
 
-- [ ] 2.1 Create `frontend/src/styles/index.css` with ordered `@import`: `./tokens.css`, `./base.css`, `./layout.css`, `./motion.css`, then `./components/{sidebar,track,player,watch,drawer,lyrics,playlist,video,search,settings,buttons,shared}.css`.
-- [ ] 2.2 Move the 3-block `:root` + motion tokens + per-theme `--plyr-*` into `frontend/src/styles/tokens.css`, rule bodies byte-identical.
-- [ ] 2.3 Move reset, `html`/`body`, typography (Fraunces/Hanken), scrollbars, `::selection` into `frontend/src/styles/base.css`.
-- [ ] 2.4 Move `.app` grid, `.main`, `.view*`, responsive shell, `.nav` rules into `frontend/src/styles/layout.css`.
-- [ ] 2.5 Move `@keyframes` (`eq`, `spin`, `drawer-in`) + the `prefers-reduced-motion` guard into `frontend/src/styles/motion.css`.
-- [ ] 2.6 Move each component block verbatim into its `frontend/src/styles/components/*.css` file (selectors unchanged, no edits).
-- [ ] 2.7 Swap `frontend/src/main.tsx` import `./styles.css` -> `./styles/index.css`; delete `frontend/src/styles.css`.
-- [ ] 2.8 Verify: `git diff --stat` shows only moved lines + the `main.tsx` import + `styles/**`; a selector-sorted diff of old vs concatenated new is empty; grep the component tree - no `className` string changed.
-- [ ] 2.9 Verify on `npm run dev`: side-by-side visual pass on every view in both themes; zero selector / cascade / behaviour change.
+- [x] 2.1 Create `frontend/src/styles/index.css` with ordered `@import`: `./tokens.css`, `./base.css`, `./layout.css`, `./motion.css`, then `./components/{sidebar,track,player,watch,drawer,lyrics,playlist,video,search,settings,buttons,shared}.css`. _(One file per section banner: `sidebar, shared, search, track, video, watch, buttons, saved-video, player, drawer, misc-chips, playlists, lyrics, settings`. `@import` order reproduces the pre-split top-to-bottom cascade; `layout.css` imported LAST so its `@media (max-width:900px)` block keeps its end-of-cascade position — see apply-progress.md.)_
+- [x] 2.2 Move the 3-block `:root` + motion tokens + per-theme `--plyr-*` into `frontend/src/styles/tokens.css`, rule bodies byte-identical.
+- [x] 2.3 Move reset, `html`/`body`, typography (Fraunces/Hanken), scrollbars, `::selection` into `frontend/src/styles/base.css`. _(No `::selection` rule exists in source; font families are token values in `tokens.css` loaded via `index.html <link>`. Global `:focus-visible` placed here — it sits with the reset rules, not the `:root` blocks.)_
+- [x] 2.4 Move `.app` grid, `.main`, `.view*`, responsive shell, `.nav` rules into `frontend/src/styles/layout.css`. _(No `.nav` rules exist yet — Slice 3. The `@media (max-width:900px)` block moved verbatim, including its `.sidebar` responsive rules.)_
+- [x] 2.5 Move `@keyframes` (`eq`, `spin`, `drawer-in`) + the `prefers-reduced-motion` guard into `frontend/src/styles/motion.css`. _(Kept `drawer-in` name — rename to `sheet-in` is Slice 3 / task 3.13.)_
+- [x] 2.6 Move each component block verbatim into its `frontend/src/styles/components/*.css` file (selectors unchanged, no edits).
+- [x] 2.7 Swap `frontend/src/main.tsx` import `./styles.css` -> `./styles/index.css`; delete `frontend/src/styles.css`.
+- [x] 2.8 Verify: `git diff --stat` shows only moved lines + the `main.tsx` import + `styles/**`; a selector-sorted diff of old vs concatenated new is empty; grep the component tree - no `className` string changed. _(Verified: 242 open-braces old == 242 new; sorted selector diff empty; every non-comment line multiset-identical; every comment line identical; only `.tsx` change is the `main.tsx` import line.)_
+- [ ] 2.9 Verify on `npm run dev`: side-by-side visual pass on every view in both themes; zero selector / cascade / behaviour change. _(Deferred — no dev server / build in this environment. Reviewer checklist in apply-progress.md.)_
 
 ## Slice 3: Responsive nav + mobile transport + full-screen views + view transitions + back-button (PR 3)
 

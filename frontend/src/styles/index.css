@@ -1,0 +1,23 @@
+/* Composition root — @import order == cascade order.
+   Reproduces the original top-to-bottom order of the pre-split stylesheet.
+   layout.css is imported last so its `@media (max-width: 900px)` block keeps
+   its end-of-cascade position over the component rules it overrides. */
+
+@import "./tokens.css";
+@import "./base.css";
+@import "./motion.css";
+@import "./components/sidebar.css";
+@import "./components/shared.css";
+@import "./components/search.css";
+@import "./components/track.css";
+@import "./components/video.css";
+@import "./components/watch.css";
+@import "./components/buttons.css";
+@import "./components/saved-video.css";
+@import "./components/player.css";
+@import "./components/drawer.css";
+@import "./components/misc-chips.css";
+@import "./components/playlists.css";
+@import "./components/lyrics.css";
+@import "./components/settings.css";
+@import "./layout.css";

@@ -1,0 +1,48 @@
+/* ---------- Misc chips / flashes ---------- */
+
+.chip {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+
+.chip--on {
+  color: var(--accent-2);
+  border-color: color-mix(in srgb, var(--accent-2) 45%, transparent);
+}
+
+.watch__skip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--scrim);
+  color: var(--on-media);
+  animation: drawer-in 0.15s ease-out;
+}
+
+.player__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  padding: 7px 13px;
+  border-radius: 999px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.player__download:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}

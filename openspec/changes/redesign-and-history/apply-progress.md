@@ -8,7 +8,8 @@ Engram MCP was down (`CONNECTION_CLOSED`) — progress persisted to this file on
 | Slice | State |
 |-------|-------|
 | 1 — Design tokens + motion + theming (PR 1) | 16/18 tasks done; 1.17 partial (SVGs only), 1.18 deferred (manual dev-server) |
-| 2–6 | Not started (out of scope for this apply) |
+| 2 — Mechanical `styles.css` split (PR 2) | 8/9 tasks done; 2.9 deferred (manual dev-server visual pass) |
+| 3–6 | Not started (out of scope for this apply) |
 
 ## Slice 1 — completed tasks
 
@@ -196,7 +197,151 @@ style string.
 - 1.17: rasterize the 4 PNG icons (see table above).
 - 1.18: manual dev-server verification (see checklist above).
 
+---
+
+# Slice 2 — Mechanical `styles.css` split (PR 2)
+
+Mode: **Standard** (`strict_tdd: false`, no test runner). Engram MCP down —
+progress persisted to this file only. No dev server / build run (project rule).
+
+## What was done
+
+`frontend/src/styles.css` (1870 lines, 242 rule blocks) was split, with **zero
+value / selector / order changes**, into `frontend/src/styles/**` composed by an
+ordered `@import` from `frontend/src/styles/index.css`.
+
+### File layout created
+
+```
+frontend/src/styles/
+  index.css                 @import composition root (order == cascade order)
+  tokens.css                4 :root blocks (bare + @media dark + [data-theme=dark] + [data-theme=light])
+                            incl. motion tokens + per-theme --plyr-* ; DESIGN TOKENS header comment
+  base.css                  *, html/body/#root, body, button, a,
+                            :where(...):focus-visible, ::-webkit-scrollbar(-thumb)
+  motion.css                @media (prefers-reduced-motion: reduce) guard
+                            + @keyframes eq + @keyframes spin + @keyframes drawer-in
+  layout.css                /* App shell */ .app .main .view .view__title .view__subhead
+                            + /* Responsive */ @media (max-width: 900px) { … }  (verbatim)
+  components/sidebar.css     /* Sidebar */
+  components/shared.css      /* Shared bits */  (.hint .empty .eq …  — @keyframes eq moved to motion.css)
+  components/search.css      /* Search bar */
+  components/track.css       /* Track list */
+  components/video.css       /* Video grid */
+  components/watch.css       /* Watch view */
+  components/buttons.css     /* Buttons / segmented / badges */  (@keyframes spin moved to motion.css)
+  components/saved-video.css /* Saved video rows */
+  components/player.css      /* Player bar */
+  components/drawer.css      /* Queue drawer */  (@keyframes drawer-in moved to motion.css)
+  components/misc-chips.css  /* Misc chips / flashes */
+  components/playlists.css   /* Playlists */
+  components/lyrics.css      /* Lyrics */
+  components/settings.css    /* Settings */
+```
+
+### `index.css` @import order (== effective cascade order)
+
+`tokens → base → motion → sidebar → shared → search → track → video → watch →
+buttons → saved-video → player → drawer → misc-chips → playlists → lyrics →
+settings → layout`
+
+### Other edits
+
+- `frontend/src/main.tsx`: `import "./styles.css";` → `import "./styles/index.css";`
+- `frontend/src/styles.css`: **deleted** (`git rm`).
+
+## Deviations from design.md / brief
+
+1. **`layout.css` is imported LAST, not 3rd** (design 2.1 lists it 3rd). The
+   original `@media (max-width: 900px)` block lives at the very bottom of
+   `styles.css` and overrides `.player`, `.sidebar*`, `.track*`, `.pldetail*`,
+   `.lyrics__line` — selectors defined in component files. Media queries add no
+   specificity, so those overrides only win by **source order**. If `layout.css`
+   (which per brief §3 owns the responsive block) were imported before the
+   component files, every mobile override would lose to the component base rule
+   and the responsive layout would break. Importing `layout.css` last preserves
+   the exact pre-split cascade — which is the governing requirement (brief §2:
+   "the cascade is byte-equivalent"). The App-shell base rules (`.app`, `.main`,
+   `.view*`) also move to the end as a result; verified no component file
+   redefines those bare selectors at equal specificity, so this is a no-op.
+2. **Component filenames follow the section banners** (`shared.css`,
+   `saved-video.css`, `misc-chips.css`, `playlists.css`, `drawer.css`) rather
+   than design 2.1's shorter list (`playlist.css`, `shared.css`, …). Brief §1
+   says "one file per section banner"; 14 component files result.
+3. **`:focus-visible` global → `base.css`, not `tokens.css`.** Brief §3 says put
+   it in `tokens.css` "if it sits with them [the `:root` blocks]". In the source
+   it sits at l.186, after `*` / `html,body` / `body` / `button` / `a` and before
+   the reduced-motion guard — i.e. with the reset rules, not the token blocks.
+   Placed in `base.css`. Selector-diff still empty; cascade unaffected (no other
+   rule sets `outline` on those elements).
+4. **`@keyframes drawer-in` keeps its name** (not renamed to `sheet-in`). The
+   rename + reference updates are explicitly Slice 3 / task 3.13.
+5. **No `::selection` rule** exists in the source — nothing to move (brief §3
+   lists it "if present").
+6. **Minor `@import`-order normalisation within `base`/`motion`:** in the source,
+   the reduced-motion `@media` sits *between* `:focus-visible` and
+   `::-webkit-scrollbar`. After the split, `base.css` holds both `:focus-visible`
+   and the scrollbar rules consecutively and `motion.css` (with the guard) is
+   imported just before. No property overlap between the guard (`animation-*` /
+   `transition-duration` / `scroll-behavior` on `*`) and the scrollbar rules
+   (`width`/`height`/`background`/`border`), and the guard is `!important`, so the
+   effective result is identical. Likewise the 3 `@keyframes` move earlier (into
+   `motion.css`); keyframe names are unique, so animation resolution is unchanged.
+
+## Verification (performed)
+
+| Check | Result |
+|-------|--------|
+| `git diff --cached --stat` scope | Only `main.tsx` (import line), `styles.css` deletion, and new `styles/**` — no other file touched |
+| Open-brace `{` count, old vs concatenated new | **242 == 242** |
+| Selector lines (ending `{`), trimmed + sorted, `diff` | **empty — SELECTORS IDENTICAL** (no selector added or dropped) |
+| Every non-comment, non-blank line, trimmed + sorted, `diff` | **empty — multiset-identical** (no declaration changed) |
+| Comment lines, sorted, `diff` | **empty — identical** |
+| `rg "styles\.css" frontend/src` | no matches (only an `index.css` doc comment, reworded to "stylesheet") |
+| `rg "styles\.css"` repo-wide (excl. `openspec/`, `node_modules/`, `*.md`) | no matches |
+| `className` strings in component tree | untouched — no `.tsx`/`.ts` changed except the `main.tsx` import |
+| Line delta | old 1870 → new 1876 CSS lines total (`index.css` +23; ~17 inter-section blank separators dropped by concatenation). No rule content lost — brace/selector/line multisets prove it. |
+
+Concatenation used for the diff (import order):
+`tokens base motion sidebar shared search track video watch buttons saved-video
+player drawer misc-chips playlists lyrics settings layout`.
+
+## Not done
+
+- **2.9** — `npm run dev` side-by-side visual pass on every view in both themes.
+  No dev server / build in this environment (Standard Mode, project rule "never
+  build after changes"). Reviewer checklist:
+  1. `npm run dev`, load the app; open every view (Search, Watch, Playlists,
+     playlist detail, Settings, Library/Saved) in **dark** then **light**
+     (`data-theme` via Settings toggle).
+  2. Compare against `main` (pre-split) side by side — pixel-identical expected.
+  3. Open the queue drawer + lyrics panel (slide-in animation intact).
+  4. Resize below 900px — responsive layout (bottom sidebar, hidden player
+     center/download, condensed track grid) still applies.
+  5. Reduced-motion emulation — animations still suppressed by the guard.
+  6. Plyr audio + video controls still themed (tokens resolve).
+
+## Preservation check
+
+CSS-only mechanical move + one import-path string. No `.tsx` logic touched. No
+audio / Plyr / MediaSession / Web-Audio / PiP / radio / scrobble / keyboard code
+path involved.
+
+## Files changed (Slice 2)
+
+| File | Action |
+|------|--------|
+| `frontend/src/styles/index.css` | Created — ordered `@import` composition root |
+| `frontend/src/styles/tokens.css` | Created — `:root` ×4 + motion/`--plyr-*` tokens |
+| `frontend/src/styles/base.css` | Created — reset / element / focus-visible / scrollbar |
+| `frontend/src/styles/motion.css` | Created — reduced-motion guard + 3 `@keyframes` |
+| `frontend/src/styles/layout.css` | Created — App shell + `@media (max-width:900px)` |
+| `frontend/src/styles/components/*.css` | Created — 14 files, one per section banner |
+| `frontend/src/main.tsx` | Modified — import `./styles/index.css` |
+| `frontend/src/styles.css` | Deleted (`git rm`) |
+| `openspec/changes/redesign-and-history/tasks.md` | Slice 2 checkboxes (2.1–2.8 `[x]`, 2.9 deferred) |
+
 ## Next
 
-`sdd-verify` for Slice 1, or `sdd-apply` for Slice 2 (mechanical `styles.css`
-→ `styles/**` split).
+`sdd-verify` for Slice 2 (or Slice 1), then `sdd-apply` for Slice 3
+(responsive Nav + mobile transport + view transitions).

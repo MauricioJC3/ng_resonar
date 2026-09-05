@@ -1,0 +1,83 @@
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  grid-area: sidebar;
+  background: var(--bg-elev);
+  border-right: 1px solid var(--line-soft);
+  padding: 26px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding-left: 10px;
+}
+
+.sidebar__logo {
+  color: var(--accent);
+  font-size: 20px;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sidebar__nav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 14.5px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar__nav button:hover {
+  color: var(--text);
+  background: var(--bg-elev-2);
+}
+
+.sidebar__nav button.is-active {
+  color: var(--text);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--accent) 30%, transparent),
+    color-mix(in srgb, var(--accent) 6%, transparent)
+  );
+}
+
+.sidebar__nav button.is-active svg {
+  color: var(--accent-soft);
+}
+
+.sidebar__count {
+  margin-left: auto;
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.sidebar__note {
+  margin-top: auto;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-faint);
+  padding: 0 10px;
+}
