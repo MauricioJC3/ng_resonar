@@ -72,7 +72,14 @@ async def create(
 
     set_key = f"user_sessions:{user_id}"
     await r.sadd(set_key, h)
-    await r.expire(set_key, abs_cap)
+    # Only ever extend the SET's TTL, never shorten it: a short normal login
+    # after a long remember-me login must not curtail destroy_all's reach
+    # (design D5: "EXPIRE = longest absolute cap"). TTL returns -1 (no expiry
+    # yet) or -2 (missing) — both compare below any real cap, so a freshly
+    # created SET still gets its expiry set here.
+    current_ttl = await r.ttl(set_key)
+    if current_ttl < abs_cap:
+        await r.expire(set_key, abs_cap)
     return token
 
 

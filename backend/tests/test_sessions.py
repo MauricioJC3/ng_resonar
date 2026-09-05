@@ -70,6 +70,19 @@ async def test_absolute_cap_destroys_even_when_idle_fresh(fake_redis):
     assert await fake_redis.hgetall(key) == {}
 
 
+async def test_session_set_ttl_is_only_extended_never_shortened(fake_redis):
+    # A long remember-me login sets a long SET TTL; a later short normal login
+    # for the same user must not curtail it (design D5 "longest absolute cap"),
+    # or destroy_all would later miss the still-valid long-lived session.
+    set_key = "user_sessions:5"
+    await sessions.create(5, remember=True)
+    long_ttl = await fake_redis.ttl(set_key)
+    assert long_ttl > settings.session_absolute_ttl
+
+    await sessions.create(5, remember=False)
+    assert await fake_redis.ttl(set_key) >= long_ttl - 5
+
+
 async def test_destroy_all_rejects_a_sibling_session(fake_redis):
     a = await sessions.create(5)
     b = await sessions.create(5)
