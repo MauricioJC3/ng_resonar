@@ -2,16 +2,18 @@ from contextlib import asynccontextmanager
 
 import httpx
 import redis.asyncio as aioredis
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import deps
 from .cache import make_cache
 from .config import settings
 from .db import dispose_engine, init_engine
+from .deps import current_user
 from .routers import (
     auth as auth_router,
     download,
+    favorites as favorites_router,
     history as history_router,
     lyrics,
     playlists as playlists_router,
@@ -23,19 +25,13 @@ from .routers import (
     video,
     videolib,
 )
-from .services import (
-    audiobatch,
-    history as history_service,
-    playlists as playlists_service,
-)
+from .services import audiobatch
 from .services.videolib import cleanup_partials
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     cleanup_partials()
-    playlists_service.ensure()
-    history_service.ensure()
     audiobatch.cleanup_old()
     deps.cache = make_cache()
     deps.http = httpx.AsyncClient(
@@ -61,23 +57,36 @@ app = FastAPI(title="Resonar API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+    allow_origins=[
+        o.strip() for o in settings.cors_origins.split(",") if o.strip()
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Public shell: login / me / bootstrap are reachable with no session; logout and
+# password change carry a route-level ``Depends(current_user)`` (see routers/auth.py).
 app.include_router(auth_router.router, prefix="/api")
-app.include_router(search.router, prefix="/api")
-app.include_router(stream.router, prefix="/api")
-app.include_router(video.router, prefix="/api")
-app.include_router(videolib.router, prefix="/api")
-app.include_router(sponsorblock.router, prefix="/api")
-app.include_router(lyrics.router, prefix="/api")
-app.include_router(playlists_router.router, prefix="/api")
-app.include_router(history_router.router, prefix="/api")
-app.include_router(recs_router.router, prefix="/api")
-app.include_router(settings_router.router, prefix="/api")
-app.include_router(download.router, prefix="/api")
+
+# Every other API surface requires a valid session. `current_user` is attached
+# at router level so an unlisted-but-public route cannot become an auth bypass.
+_guard = Depends(current_user)
+for _router in (
+    search,
+    stream,
+    video,
+    videolib,
+    sponsorblock,
+    lyrics,
+    playlists_router,
+    history_router,
+    recs_router,
+    settings_router,
+    download,
+    favorites_router,
+):
+    app.include_router(_router.router, prefix="/api", dependencies=[_guard])
 
 
 @app.get("/api/health")

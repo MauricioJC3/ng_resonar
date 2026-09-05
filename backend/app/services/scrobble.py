@@ -1,4 +1,9 @@
-"""Send now-playing / listens to ListenBrainz and Last.fm. Best-effort."""
+"""Send now-playing / listens to ListenBrainz and Last.fm. Best-effort.
+
+The caller loads the per-user settings blob (``appsettings.load(db, user_id)``)
+and passes it in as ``cfg`` so this module stays free of DB access and works
+with the credentials of whichever user made the request.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +11,6 @@ import hashlib
 import time
 
 from ..deps import get_http
-from . import appsettings
 
 LB_ROOT = "https://api.listenbrainz.org/1/submit-listens"
 LFM_ROOT = "https://ws.audioscrobbler.com/2.0/"
@@ -23,14 +27,18 @@ def _meta(track: dict) -> tuple[str, str, str]:
 # --------------------------------------------------------------------------- #
 
 
-async def _lb(track: dict, listen_type: str, listened_at: int | None) -> None:
-    cfg = appsettings.load()["listenbrainz"]
-    if not cfg["enabled"] or not cfg["token"]:
+async def _lb(
+    cfg: dict, track: dict, listen_type: str, listened_at: int | None
+) -> None:
+    lb = cfg["listenbrainz"]
+    if not lb["enabled"] or not lb["token"]:
         return
     artist, title, album = _meta(track)
     if not artist or not title:
         return
-    listen: dict = {"track_metadata": {"artist_name": artist, "track_name": title}}
+    listen: dict = {
+        "track_metadata": {"artist_name": artist, "track_name": title}
+    }
     if album:
         listen["track_metadata"]["release_name"] = album
     if listen_type == "single":
@@ -40,7 +48,7 @@ async def _lb(track: dict, listen_type: str, listened_at: int | None) -> None:
         await get_http().post(
             LB_ROOT,
             json={"listen_type": listen_type, "payload": [listen]},
-            headers={"Authorization": f"Token {cfg['token']}"},
+            headers={"Authorization": f"Token {lb['token']}"},
             timeout=10,
         )
     except Exception:  # noqa: BLE001
@@ -57,29 +65,31 @@ def _sign(params: dict, secret: str) -> str:
     return hashlib.md5(base.encode("utf-8")).hexdigest()
 
 
-async def lastfm_call(method: str, extra: dict) -> dict:
-    cfg = appsettings.load()["lastfm"]
-    params = {"method": method, "api_key": cfg["apiKey"], **extra}
-    params["api_sig"] = _sign(params, cfg["apiSecret"])
+async def lastfm_call(cfg: dict, method: str, extra: dict) -> dict:
+    lf = cfg["lastfm"]
+    params = {"method": method, "api_key": lf["apiKey"], **extra}
+    params["api_sig"] = _sign(params, lf["apiSecret"])
     params["format"] = "json"
     res = await get_http().post(LFM_ROOT, data=params, timeout=10)
     return res.json()
 
 
-async def _lfm(track: dict, method: str, listened_at: int | None) -> None:
-    cfg = appsettings.load()["lastfm"]
-    if not cfg["enabled"] or not cfg["sessionKey"] or not cfg["apiKey"]:
+async def _lfm(
+    cfg: dict, track: dict, method: str, listened_at: int | None
+) -> None:
+    lf = cfg["lastfm"]
+    if not lf["enabled"] or not lf["sessionKey"] or not lf["apiKey"]:
         return
     artist, title, album = _meta(track)
     if not artist or not title:
         return
-    extra = {"artist": artist, "track": title, "sk": cfg["sessionKey"]}
+    extra = {"artist": artist, "track": title, "sk": lf["sessionKey"]}
     if album:
         extra["album"] = album
     if method == "track.scrobble":
         extra["timestamp"] = str(listened_at or int(time.time()))
     try:
-        await lastfm_call(method, extra)
+        await lastfm_call(cfg, method, extra)
     except Exception:  # noqa: BLE001
         pass
 
@@ -89,12 +99,12 @@ async def _lfm(track: dict, method: str, listened_at: int | None) -> None:
 # --------------------------------------------------------------------------- #
 
 
-async def now_playing(track: dict) -> None:
-    await _lb(track, "playing_now", None)
-    await _lfm(track, "track.updateNowPlaying", None)
+async def now_playing(cfg: dict, track: dict) -> None:
+    await _lb(cfg, track, "playing_now", None)
+    await _lfm(cfg, track, "track.updateNowPlaying", None)
 
 
-async def submit(track: dict, listened_at: int | None = None) -> None:
+async def submit(cfg: dict, track: dict, listened_at: int | None = None) -> None:
     ts = listened_at or int(time.time())
-    await _lb(track, "single", ts)
-    await _lfm(track, "track.scrobble", ts)
+    await _lb(cfg, track, "single", ts)
+    await _lfm(cfg, track, "track.scrobble", ts)

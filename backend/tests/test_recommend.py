@@ -5,6 +5,14 @@ manual verification (see openspec apply-progress). These cover the deterministic
 helpers `pick_seeds` and `rank`.
 """
 
+import pytest
+
+from app import security
+from app.models import User
+from app.models.user import ROLE_USER
+from app.repos import history as history_repo
+from app.services import recommend as recommend_mod
+from app.services import ytmusic
 from app.services.recommend import pick_seeds, rank
 
 
@@ -67,3 +75,56 @@ def test_rank_dedupes_within_a_single_seed():
     by_seed = {"s0": [_track("x"), _track("x"), _track("y")]}
     ranked = rank(by_seed, ["s0"], exclude=set())
     assert [t["id"] for t in ranked] == ["x", "y"]
+
+
+# --- per-user recommendation isolation (design §5) --------------------------
+
+
+class _FakeCache:
+    def __init__(self) -> None:
+        self._d: dict = {}
+
+    async def get(self, key):
+        return self._d.get(key)
+
+    async def set(self, key, value, ttl=None):
+        self._d[key] = value
+
+
+def _mk_user(db_session, username: str) -> User:
+    user = User(
+        username=username,
+        password_hash=security.hash_password("recommend-user-pass-1"),
+        role=ROLE_USER,
+    )
+    db_session.add(user)
+    db_session.flush()
+    return user
+
+
+@pytest.mark.asyncio
+async def test_recommendations_derive_only_from_the_callers_history(
+    db_session, monkeypatch
+):
+    alice = _mk_user(db_session, "alice")
+    bob = _mk_user(db_session, "bob")
+    history_repo.add(db_session, alice.id, {"videoId": "seedA", "title": "A"})
+
+    async def fake_related(video_id, limit):
+        return [{"id": f"rel-{video_id}", "title": "R", "artists": ["X"]}]
+
+    async def fake_home():
+        return [{"id": "home-1", "title": "H", "artists": ["Y"]}]
+
+    monkeypatch.setattr(ytmusic, "related", fake_related)
+    monkeypatch.setattr(ytmusic, "home", fake_home)
+
+    a_res = await recommend_mod.recommend(_FakeCache(), db_session, alice.id, 30)
+    b_res = await recommend_mod.recommend(_FakeCache(), db_session, bob.id, 30)
+
+    # A's results are built from A's seed...
+    assert any(t["id"] == "rel-seedA" for t in a_res)
+    # ...B has no history, so B gets the cold-start home fallback...
+    assert b_res == [{"id": "home-1", "title": "H", "artists": ["Y"]}]
+    # ...and A's plays never leak into B's results.
+    assert all(t["id"] != "rel-seedA" for t in b_res)

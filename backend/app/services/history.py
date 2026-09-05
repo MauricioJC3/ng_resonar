@@ -1,72 +1,44 @@
-"""Server-side playback history in a single JSON file (single-user app, cross-device)."""
+"""User-scoped playback history backed by Postgres (design D3).
+
+Thin shaping layer over ``repos/history.py``. It returns the same entry shape
+the SPA already consumes (``videoId`` / ``playedAt`` epoch seconds / ``playCount``
+/ ...), so the ``/api/history`` request and response contracts are unchanged
+from the old JSON-file service.
+"""
 
 from __future__ import annotations
 
-import json
-import os
-import threading
-import time
+from sqlalchemy.orm import Session
 
-from ..config import settings
+from ..models import History
+from ..repos import history as history_repo
 
-_FILE = os.path.join(settings.data_dir, "history.json")
-_lock = threading.Lock()
-
-# Pinned entry cap, within the 500-1000 band from the spec. On any write that
-# would exceed it, the oldest entries are dropped.
-CAP = 800
+# Kept for import compatibility with older tests / callers.
+CAP = history_repo.CAP
 
 
-def ensure() -> None:
-    os.makedirs(settings.data_dir, exist_ok=True)
-    if not os.path.exists(_FILE):
-        with open(_FILE, "w", encoding="utf-8") as f:
-            json.dump({"entries": []}, f)
+def _serialize(row: History) -> dict:
+    return {
+        "videoId": row.video_id,
+        "title": row.title,
+        "artist": row.artist,
+        "thumbnail": row.thumbnail,
+        "kind": row.kind,
+        "playedAt": int(row.played_at.timestamp()),
+        "playCount": row.play_count,
+        "source": row.source,
+    }
 
 
-def _load() -> dict:
-    ensure()
-    try:
-        with open(_FILE, encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data.get("entries"), list) else {"entries": []}
-    except (OSError, json.JSONDecodeError):
-        return {"entries": []}
+def add(db: Session, user_id: int, entry: dict) -> dict:
+    return _serialize(history_repo.add(db, user_id, entry))
 
 
-def _save(data: dict) -> None:
-    ensure()
-    tmp = _FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
-    os.replace(tmp, _FILE)
+def list_entries(
+    db: Session, user_id: int, limit: int | None = None
+) -> list[dict]:
+    return [_serialize(row) for row in history_repo.list_(db, user_id, limit)]
 
 
-def add(entry: dict) -> dict:
-    with _lock:
-        data = _load()
-        entries = data["entries"]
-        now = int(time.time())
-        vid = entry["videoId"]
-        if entries and entries[-1].get("videoId") == vid:  # consecutive repeat
-            entries[-1]["playedAt"] = now
-            entries[-1]["playCount"] = entries[-1].get("playCount", 1) + 1
-            stored = entries[-1]
-        else:
-            stored = {**entry, "playedAt": now, "playCount": 1}
-            entries.append(stored)
-        if len(entries) > CAP:  # drop oldest
-            del entries[: len(entries) - CAP]
-        data["entries"] = entries
-        _save(data)
-        return stored
-
-
-def list_entries(limit: int | None = None) -> list[dict]:
-    entries = list(reversed(_load()["entries"]))  # newest-first
-    return entries[:limit] if limit else entries
-
-
-def clear() -> None:
-    with _lock:
-        _save({"entries": []})
+def clear(db: Session, user_id: int) -> None:
+    history_repo.clear_(db, user_id)

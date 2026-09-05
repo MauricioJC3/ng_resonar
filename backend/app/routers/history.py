@@ -1,8 +1,13 @@
 from typing import Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from ..db import get_db
+from ..deps import current_user
+from ..models import User
 from ..services import history
 
 router = APIRouter(tags=["history"])
@@ -33,16 +38,32 @@ class HistoryBody(BaseModel):
 
 
 @router.get("/history")
-async def get_history(limit: int = Query(100, ge=1, le=800)):
-    return {"results": history.list_entries(limit)}
+async def get_history(
+    limit: int = Query(100, ge=1, le=800),
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    results = await run_in_threadpool(
+        history.list_entries, db, user.id, limit
+    )
+    return {"results": results}
 
 
 @router.post("/history")
-async def post_history(body: HistoryBody):
-    return history.add(body.model_dump())
+async def post_history(
+    body: HistoryBody,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    return await run_in_threadpool(
+        history.add, db, user.id, body.model_dump()
+    )
 
 
 @router.delete("/history")
-async def delete_history():
-    history.clear()
+async def delete_history(
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    await run_in_threadpool(history.clear, db, user.id)
     return {"ok": True}

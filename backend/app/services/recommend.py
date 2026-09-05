@@ -11,7 +11,10 @@ from __future__ import annotations
 import asyncio
 import hashlib
 
-from ..services import history as history_service
+from fastapi.concurrency import run_in_threadpool
+from sqlalchemy.orm import Session
+
+from ..repos import history as history_repo
 from ..services import ytmusic
 
 # Pinned values (see design Part B).
@@ -109,10 +112,22 @@ async def _related_cached(
     return video_id, results
 
 
-async def recommend(cache, limit: int = _RANK_CAP) -> list[dict]:
-    """History-seeded recommendations with a ranked-result cache + home fallback."""
+def _history_rows(db: Session, user_id: int) -> list[dict]:
+    """Only ever this user's rows — there is no cross-user read path."""
+    rows = history_repo.list_(db, user_id, None)
+    return [{"videoId": row.video_id} for row in rows]
+
+
+async def recommend(
+    cache, db: Session, user_id: int, limit: int = _RANK_CAP
+) -> list[dict]:
+    """History-seeded recommendations with a ranked-result cache + home fallback.
+
+    The seed history is read strictly for ``user_id``, so one user's plays never
+    influence another user's recommendations (spec: per-user-recommendations).
+    """
     try:
-        entries = history_service.list_entries(None)
+        entries = await run_in_threadpool(_history_rows, db, user_id)
     except Exception:  # noqa: BLE001
         entries = []
 

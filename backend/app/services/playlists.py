@@ -1,146 +1,73 @@
-"""Server-side playlists in a single JSON file (single-user app, cross-device)."""
+"""User-scoped playlists backed by Postgres (design D3).
+
+Thin shaping layer over ``repos/playlists.py``: it turns ORM rows into the exact
+JSON shapes the SPA already expects (``PlaylistSummary`` / ``Playlist``), so the
+request and response contracts are unchanged from the old JSON-file service.
+Every call is scoped to ``user_id``.
+"""
 
 from __future__ import annotations
 
-import json
-import os
-import threading
-import time
-import uuid
+from sqlalchemy.orm import Session
 
-from ..config import settings
-
-_FILE = os.path.join(settings.data_dir, "playlists.json")
-_lock = threading.Lock()
+from ..models import Playlist as PlaylistRow
+from ..repos import playlists as playlists_repo
 
 
-def ensure() -> None:
-    os.makedirs(settings.data_dir, exist_ok=True)
-    if not os.path.exists(_FILE):
-        with open(_FILE, "w", encoding="utf-8") as f:
-            json.dump({}, f)
-
-
-def _load() -> dict:
-    ensure()
-    try:
-        with open(_FILE, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return {}
-
-
-def _save(data: dict) -> None:
-    ensure()
-    tmp = _FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
-    os.replace(tmp, _FILE)
-
-
-def _summary(pl: dict) -> dict:
-    tracks = pl.get("tracks", [])
+def _detail(db: Session, pl: PlaylistRow) -> dict:
+    tracks = playlists_repo.tracks_of(db, pl.id)
     return {
-        "id": pl["id"],
-        "name": pl["name"],
+        "id": pl.id,
+        "name": pl.name,
         "count": len(tracks),
         "thumbnail": tracks[0].get("thumbnail") if tracks else None,
-        "updatedAt": pl.get("updatedAt", 0),
+        "createdAt": int(pl.created_at.timestamp()),
+        "updatedAt": int(pl.updated_at.timestamp()),
+        "tracks": tracks,
     }
 
 
-def list_playlists() -> list[dict]:
-    data = _load()
-    return sorted(
-        (_summary(p) for p in data.values()),
-        key=lambda s: s["updatedAt"],
-        reverse=True,
-    )
+def list_playlists(db: Session, user_id: int) -> list[dict]:
+    return playlists_repo.list_summaries(db, user_id)
 
 
-def get(pid: str) -> dict | None:
-    return _load().get(pid)
+def get(db: Session, user_id: int, pid: str) -> dict | None:
+    pl = playlists_repo.get(db, user_id, pid)
+    return _detail(db, pl) if pl is not None else None
 
 
-def create(name: str, tracks: list[dict] | None = None) -> dict:
-    with _lock:
-        data = _load()
-        pid = "pl_" + uuid.uuid4().hex[:12]
-        now = int(time.time())
-        pl = {
-            "id": pid,
-            "name": (name or "").strip() or "Sin nombre",
-            "createdAt": now,
-            "updatedAt": now,
-            "tracks": tracks or [],
-        }
-        data[pid] = pl
-        _save(data)
-        return pl
+def create(
+    db: Session, user_id: int, name: str, tracks: list[dict] | None = None
+) -> dict:
+    pl = playlists_repo.create(db, user_id, name, tracks)
+    return _detail(db, pl)
 
 
-def rename(pid: str, name: str) -> dict | None:
-    with _lock:
-        data = _load()
-        pl = data.get(pid)
-        if not pl:
-            return None
-        pl["name"] = (name or "").strip() or pl["name"]
-        pl["updatedAt"] = int(time.time())
-        _save(data)
-        return pl
+def rename(db: Session, user_id: int, pid: str, name: str) -> dict | None:
+    pl = playlists_repo.rename(db, user_id, pid, name)
+    return _detail(db, pl) if pl is not None else None
 
 
-def delete(pid: str) -> bool:
-    with _lock:
-        data = _load()
-        if pid not in data:
-            return False
-        del data[pid]
-        _save(data)
-        return True
+def delete(db: Session, user_id: int, pid: str) -> bool:
+    return playlists_repo.delete_(db, user_id, pid)
 
 
-def add_tracks(pid: str, tracks: list[dict]) -> dict | None:
-    with _lock:
-        data = _load()
-        pl = data.get(pid)
-        if not pl:
-            return None
-        have = {t.get("id") for t in pl["tracks"]}
-        for t in tracks:
-            tid = t.get("id")
-            if tid and tid not in have:
-                pl["tracks"].append(t)
-                have.add(tid)
-        pl["updatedAt"] = int(time.time())
-        _save(data)
-        return pl
+def add_tracks(
+    db: Session, user_id: int, pid: str, tracks: list[dict]
+) -> dict | None:
+    pl = playlists_repo.add_tracks(db, user_id, pid, tracks)
+    return _detail(db, pl) if pl is not None else None
 
 
-def remove_track(pid: str, track_id: str) -> dict | None:
-    with _lock:
-        data = _load()
-        pl = data.get(pid)
-        if not pl:
-            return None
-        pl["tracks"] = [t for t in pl["tracks"] if t.get("id") != track_id]
-        pl["updatedAt"] = int(time.time())
-        _save(data)
-        return pl
+def remove_track(
+    db: Session, user_id: int, pid: str, track_id: str
+) -> dict | None:
+    pl = playlists_repo.remove_track(db, user_id, pid, track_id)
+    return _detail(db, pl) if pl is not None else None
 
 
-def reorder(pid: str, ids: list[str]) -> dict | None:
-    with _lock:
-        data = _load()
-        pl = data.get(pid)
-        if not pl:
-            return None
-        by_id = {t.get("id"): t for t in pl["tracks"]}
-        wanted = set(ids)
-        pl["tracks"] = [by_id[i] for i in ids if i in by_id] + [
-            t for t in pl["tracks"] if t.get("id") not in wanted
-        ]
-        pl["updatedAt"] = int(time.time())
-        _save(data)
-        return pl
+def reorder(
+    db: Session, user_id: int, pid: str, ids: list[str]
+) -> dict | None:
+    pl = playlists_repo.reorder(db, user_id, pid, ids)
+    return _detail(db, pl) if pl is not None else None

@@ -37,17 +37,6 @@ _TABLES = (
 )
 
 
-# --- legacy JSON history service (still present until Slice 2) ---------------
-@pytest.fixture(autouse=True)
-def tmp_history(tmp_path, monkeypatch):
-    """Point the JSON history service at a throwaway data dir."""
-    from app.services import history
-
-    monkeypatch.setattr(history.settings, "data_dir", str(tmp_path))
-    monkeypatch.setattr(history, "_FILE", str(tmp_path / "history.json"))
-    yield tmp_path
-
-
 # --- Postgres ---------------------------------------------------------------
 def _reachable(url: str) -> bool:
     try:
@@ -181,6 +170,55 @@ def client(pg_engine, db_session, fake_redis):
     finally:
         app.dependency_overrides.clear()
         _rebind_engine(pg_engine)
+
+
+@pytest.fixture
+def as_user(api, pg_engine):
+    """Seed a committed ``User`` and override ``current_user`` on the real app.
+
+    Returns a factory; call it again to point the override at another user
+    (isolation tests seed two users and flip between requests). Truncation of
+    the seeded rows is the caller's job via the ``db_reset`` fixture.
+    """
+    from sqlalchemy import func, select
+
+    from app import security
+    from app.db import SessionLocal
+    from app.deps import current_user
+    from app.main import app
+    from app.models import User
+    from app.models.user import ROLE_SUPERADMIN, ROLE_USER
+
+    _ROLES = {"user": ROLE_USER, "superadmin": ROLE_SUPERADMIN}
+
+    def _make(
+        username: str = "tester",
+        *,
+        role: str = "user",
+        must_change_password: bool = False,
+    ) -> User:
+        with SessionLocal() as db:
+            user = db.execute(
+                select(User).where(
+                    func.lower(User.username) == username.lower()
+                )
+            ).scalar_one_or_none()
+            if user is None:
+                user = User(
+                    username=username,
+                    password_hash=security.hash_password("seed-user-pass-123"),
+                    role=_ROLES.get(role, role),
+                    must_change_password=must_change_password,
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+            db.expunge(user)
+        app.dependency_overrides[current_user] = lambda: user
+        return user
+
+    yield _make
+    app.dependency_overrides.pop(current_user, None)
 
 
 @pytest.fixture

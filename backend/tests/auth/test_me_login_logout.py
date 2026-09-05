@@ -103,3 +103,79 @@ def test_logout_rejects_the_same_cookie_afterwards(api, seed_user, db_reset):
 
     after = api.get("/api/auth/me").json()
     assert after["authenticated"] is False
+
+
+# --- W2: dummy-verify is pinned on the unknown-username login path -----------
+
+
+def test_unknown_username_login_still_runs_a_dummy_argon2_verify(
+    api, db_reset, monkeypatch
+):
+    import app.services.auth as auth_mod
+
+    calls: list[int] = []
+    monkeypatch.setattr(
+        auth_mod.security, "dummy_verify", lambda: calls.append(1)
+    )
+
+    res = api.post(
+        "/api/auth/login",
+        json={"username": "does-not-exist", "password": "whatever-123456"},
+    )
+    assert res.status_code == 401
+    assert calls == [1], "unknown-user login must equalise timing via dummy_verify"
+
+
+# --- W4: PATCH /api/auth/password endpoint integration ----------------------
+
+NEW_PASSWORD = "a-brand-new-long-pass-1"
+
+
+def test_password_change_wrong_current_is_403_and_leaves_password_unchanged(
+    api, seed_user, db_reset
+):
+    api.post("/api/auth/login", json={"username": "alice", "password": PASSWORD})
+    res = api.patch(
+        "/api/auth/password",
+        json={"currentPassword": "not-the-password", "newPassword": NEW_PASSWORD},
+    )
+    assert res.status_code == 403
+
+    with SessionLocal() as db:
+        user = db.get(User, seed_user)
+        assert security.verify_password(user.password_hash, PASSWORD)
+        assert not security.verify_password(user.password_hash, NEW_PASSWORD)
+
+
+def test_password_change_succeeds_and_invalidates_sibling_sessions(
+    api, seed_user, db_reset
+):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    session_a = api
+    session_b = TestClient(app)
+
+    session_a.post(
+        "/api/auth/login", json={"username": "alice", "password": PASSWORD}
+    )
+    session_b.post(
+        "/api/auth/login", json={"username": "alice", "password": PASSWORD}
+    )
+    assert session_b.get("/api/auth/me").json()["authenticated"] is True
+
+    res = session_a.patch(
+        "/api/auth/password",
+        json={"currentPassword": PASSWORD, "newPassword": NEW_PASSWORD},
+    )
+    assert res.status_code == 200
+
+    # Sibling session B is destroyed (destroy_all), the acting session A survives.
+    assert session_b.get("/api/auth/me").json()["authenticated"] is False
+    assert session_a.get("/api/auth/me").json()["authenticated"] is True
+
+    # The new password is what logs in now.
+    with SessionLocal() as db:
+        user = db.get(User, seed_user)
+        assert security.verify_password(user.password_hash, NEW_PASSWORD)
