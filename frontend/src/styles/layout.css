@@ -5,7 +5,7 @@
   grid-template-columns: 244px 1fr;
   grid-template-rows: 1fr 90px;
   grid-template-areas:
-    "sidebar main"
+    "nav main"
     "player player";
   height: 100vh;
   height: 100dvh;
@@ -48,64 +48,20 @@
   font-weight: 600;
 }
 
-/* ---------- Responsive ---------- */
+/* ---------- Responsive (single breakpoint: 860px) ---------- */
 
-@media (max-width: 900px) {
+@media (max-width: 859.98px) {
   .app {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr 84px;
+    grid-template-rows: 1fr auto auto;
     grid-template-areas:
-      "sidebar"
       "main"
-      "player";
-  }
-
-  .sidebar {
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line-soft);
-  }
-
-  .sidebar__note {
-    display: none;
-  }
-
-  .sidebar__brand .sidebar__label {
-    display: none;
-  }
-
-  .sidebar__nav {
-    flex-direction: row;
-    margin-left: auto;
-    gap: 2px;
-  }
-
-  .sidebar__nav button {
-    padding: 9px 10px;
-  }
-
-  .sidebar__nav .sidebar__label {
-    display: none;
+      "player"
+      "nav";
   }
 
   .main {
-    padding: 20px;
-  }
-
-  .player {
-    grid-template-columns: 1fr auto;
-    gap: 12px;
-  }
-
-  .player__center {
-    display: none;
-  }
-
-  .player__download {
-    display: none;
+    padding: 20px 16px 8px;
   }
 
   .pldetail__head {

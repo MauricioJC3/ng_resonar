@@ -26,7 +26,7 @@
   border-radius: 8px;
   background: var(--scrim);
   color: var(--on-media);
-  animation: drawer-in 0.15s ease-out;
+  animation: sheet-in var(--dur-slow) var(--ease-emphasized);
 }
 
 .player__download {
@@ -39,7 +39,7 @@
   border: 1px solid var(--line);
   padding: 7px 13px;
   border-radius: 999px;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color var(--dur-base) var(--ease-standard), border-color var(--dur-base) var(--ease-standard);
 }
 
 .player__download:hover {

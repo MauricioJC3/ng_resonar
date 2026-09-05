@@ -8,6 +8,13 @@
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* Native View Transitions: skip the animated pseudo-elements entirely. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 @keyframes eq {
@@ -26,9 +33,27 @@
   }
 }
 
-@keyframes drawer-in {
+/* Renamed from `drawer-in`. Gentle rise + fade — used by the queue sheet,
+   lyrics sheet and the skip flash. */
+@keyframes sheet-in {
   from {
-    transform: translateX(20px);
+    transform: translateY(12px);
     opacity: 0.4;
   }
+}
+
+/* Full slide-up used for bottom sheets on mobile and as the now-playing
+   fallback when View Transitions are unavailable. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* ---------- Native View Transitions ---------- */
+/* Default root crossfade for the App content swap. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-base);
+  animation-timing-function: var(--ease-emphasized);
 }

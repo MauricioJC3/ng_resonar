@@ -136,6 +136,8 @@ const PATHS: Record<string, ReactElement> = {
       <path d="M9.5 21v-6h5v6" />
     </>
   ),
+  chevronDown: <path d="m6 9 6 6 6-6" />,
+  chevronUp: <path d="m6 15 6-6 6 6" />,
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />

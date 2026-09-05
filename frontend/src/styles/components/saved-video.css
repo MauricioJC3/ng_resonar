@@ -55,7 +55,7 @@
   color: var(--on-media);
   background: var(--scrim);
   opacity: 0;
-  transition: opacity 0.14s;
+  transition: opacity var(--dur-fast) var(--ease-standard);
 }
 
 .srow__thumb:hover .srow__play {

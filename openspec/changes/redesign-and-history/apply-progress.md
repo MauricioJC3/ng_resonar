@@ -345,3 +345,294 @@ path involved.
 
 `sdd-verify` for Slice 2 (or Slice 1), then `sdd-apply` for Slice 3
 (responsive Nav + mobile transport + view transitions).
+
+---
+
+# Slice 3 — Responsive nav + mobile transport + full-screen views + View Transitions + back-button (PR 3)
+
+Mode: **Standard** (`strict_tdd: false`, no test runner). Engram MCP down —
+progress persisted to this file only. No dev server / build / docker run
+(brief + project rule). `node_modules` is not installed in this environment,
+so `tsc --noEmit` could not resolve `react` — types were reviewed by hand.
+
+## Status
+
+| Task | State |
+|------|-------|
+| 3.1–3.20 | done (`[x]`) |
+| 3.21 | deferred — manual `npm run dev` verification (checklist below) |
+
+## What was done
+
+### Nav component (3.1, 3.2)
+
+- `git mv frontend/src/components/Sidebar.tsx frontend/src/components/Nav.tsx`.
+  Same props `{ view: View; onNavigate: (v: View) => void }`, same static
+  `NAV` array (5 items, unchanged labels/icons).
+- Markup is now a single `<nav className="nav" aria-label="Navegación
+  principal">` with `.nav__brand` / `.nav__items` / `.nav__item` / `.nav__note`.
+  The active item carries `aria-current="page"`; focus ring is the global
+  `:where(button,a,input,[tabindex]):focus-visible` rule from `base.css`.
+  Library count badge kept as `.nav__count` (with `tabular-nums`). `home` glyph
+  already existed in `Icon.tsx` (added in Slice 1) — no new nav glyph needed.
+- `frontend/src/styles/components/sidebar.css` (filename kept per task 3.2)
+  fully rewritten: `.nav` = left rail `>= 860px`; one
+  `@media (max-width: 859.98px)` block turns it into a row bottom bar
+  (`position: sticky; bottom: 0; z-index: 90`), hides `.nav__brand` +
+  `.nav__note`, stacks icon-over-label per item, repositions `.nav__count`.
+
+### App shell grid (3.3)
+
+`frontend/src/styles/layout.css`:
+- `.app` desktop unchanged in dimensions — only the area token renamed:
+  `grid-template-areas: "nav main" / "player player"` (was `"sidebar main"`),
+  columns `244px 1fr`, rows `1fr 90px`.
+- The old `@media (max-width: 900px)` block was **replaced** by a
+  `@media (max-width: 859.98px)` block: `.app` → single column, rows
+  `1fr auto auto`, areas `"main" "player" "nav"`; `.main { padding: 20px 16px
+  8px }` (the `8px` bottom is the design's `padding-bottom`). Player + nav are
+  in-flow `auto` grid rows, so they never overlap `.main` (the `1fr` row).
+  Non-nav responsive tweaks that were in the old block are kept verbatim
+  (`.pldetail__*`, `.lyrics__line`, `.track` grid condensation,
+  `.track__album`, `.track__icon`).
+- Dropped from the old block (intentional): all `.sidebar*` rules (replaced by
+  `.nav` bottom-bar rules), `.player { grid-template-columns: 1fr auto }`
+  (moved to `player.css`), **`.player__center { display: none }`** and
+  **`.player__download { display: none }`** — the first is the "restore mobile
+  transport" fix, the second moves to `player.css` (hidden on the mini-player,
+  shown in the full-screen view).
+
+### PlayerBar single-mount preserved (3.4)
+
+`App.tsx` still renders `<PlayerBar />` as a bare, unconditional, key-less
+direct child of `<div className="app">`, a sibling of `<main>{content}</main>`.
+`content` is the only thing that swaps. Nothing wraps `<PlayerBar />`.
+
+### Mobile transport restored (3.5)
+
+`frontend/src/styles/components/player.css`, `@media (max-width: 859.98px)`:
+- `.player` → 2-col grid `"meta actions" / "center center"`.
+- `.player__center { display: flex }` (never `display:none` again) — Plyr's own
+  audio UI (play + progress/seek + current-time + mute + volume) is the
+  restored transport. `.player__center .plyr { width: 100% }`.
+- The native `<audio>` element is never hidden (Plyr hides it internally; we
+  only ever style the `.player__center` wrapper and `.plyr`).
+- `.player__transport` (prev/next buttons) hidden on the mini-player — the full
+  prev/next set lives in the full-screen now-playing view. `.player__download`
+  hidden on the mini-player.
+
+### Full-screen now-playing = CSS expansion (3.6, 3.8)
+
+`frontend/src/components/PlayerBar.tsx`:
+- New local boolean `expanded` (one `useState`). `flipExpanded(v)` wraps
+  `setExpanded` in `document.startViewTransition(() => flushSync(...))` when the
+  API exists **and** `prefers-reduced-motion` is not set; otherwise a plain
+  `setExpanded`.
+- `openExpanded()` (guard: `current` must exist and not already expanded)
+  pushes `history.pushState({ ...history.state, np: true }, "")` then
+  `flipExpanded(true)`. `closeExpanded()` calls `history.back()` when the top
+  entry has `np`, else `flipExpanded(false)`. One `popstate` `useEffect` in
+  PlayerBar sets `expanded` from `e.state?.np` → the OS/browser Back gesture
+  collapses the full-screen view instead of leaving the app.
+- The `<footer className="player">` gains `player--expanded` class +
+  `data-expanded` + `role="dialog"` / `aria-label` when expanded. `.player__meta`
+  became a `<button type="button">` (expand tap target, `disabled` when nothing
+  is playing) — the **same** `<img className="player__art">` / `.player__text`
+  live inside it. A `.player__collapse` chevron-down button renders only while
+  expanded.
+- **No new component, no portal, no second `<audio>`/Plyr.** `usePlayer()`,
+  `audioRef`, `plyrRef`, the mount-once Plyr `useEffect([])`, the
+  `useEffect([current])` metadata block, radio/keyboard/leveling effects are
+  all byte-unchanged.
+- CSS `.player--expanded` (`player.css`): `position: fixed; inset: 0;
+  z-index: 200` (above the `z-index: 90` bottom-nav), flex column, large
+  artwork `min(72vw, 340px)`, centered title, `.player__transport` shown,
+  `.player__actions` (level / lyrics / radio / queue — same handlers) centered
+  and wrapped, `.player__download` shown. Enter animation
+  `animation: sheet-up var(--dur-slow) var(--ease-emphasized)` — this is the
+  `translateY(100%) → 0` fallback used when View Transitions are unsupported;
+  the global reduced-motion guard nullifies it.
+- `view-transition-name: np-art` on `.player__art`, `np-title` on
+  `.player__title` (both in `player.css`) so the artwork/title morph as shared
+  elements when the expand toggle runs inside a View Transition.
+
+### Full-screen watch on mobile (3.7)
+
+`frontend/src/styles/components/watch.css`, new `@media (max-width: 859.98px)`
+block only: `.watch__stage` → `position: fixed; top/left/right: 0; z-index: 70;
+border-radius: 0`; `.watch__stage .plyr { border-radius: 0 }`; `.watch` gets
+`padding-top: min(56.25vw, 60vh)` so the title + "Relacionados" list scroll
+beneath the fixed 16:9 stage; `.watch__back` pinned top-left.
+**`WatchView.tsx` is byte-unchanged** — the Plyr `controls` array (still
+`["play-large","play","progress","current-time","duration","mute","volume",
+"settings","pip","fullscreen"]`), the container element, and every
+`.plyr__control` are untouched. No `display:none` / `visibility:hidden` /
+`pointer-events:none` anywhere near Plyr.
+
+### Back-button / history view sync (3.9–3.12)
+
+`frontend/src/App.tsx`:
+- State model unchanged: `view` / `watching` / `openPlaylist` `useState`, no
+  router.
+- `applyState(s)` = the three setters, no history writes.
+- `go(next: NavState)` = `history.pushState({ ...next, np: false }, "")` then
+  `applyState`, wrapped in `document.startViewTransition(() => flushSync(() =>
+  applyState(next)))` when `typeof document.startViewTransition === "function"`
+  **and** not `prefers-reduced-motion`. Fallback = plain `applyState`.
+- `navigate(v)` → `go({ view: v, watching: null, openPlaylist: null })`;
+  `watch(v)` → `go({ view, watching: v, openPlaylist: null })`;
+  `openPlaylistDetail(id)` → `go({ view: "playlists", watching: null,
+  openPlaylist: id })`. `WatchView.onClose` and `PlaylistDetailView.onBack`
+  both call `back = () => history.back()` (per the design mapping table:
+  "close watch / back from playlist detail → previous entry via native Back").
+- Mount `useEffect([])`: `history.replaceState({ ...DEFAULT_STATE, np: false },
+  "")` (initial view is always `search` with no overlay).
+- One `popstate` `useEffect([applyState])`: `onPop(e)` reads `e.state`,
+  defaulting to `{ view: "search", watching: null, openPlaylist: null }` when
+  `null` (deep path / refresh), and applies the setters — never re-pushes.
+- New `frontend/src/global.d.ts`: ambient `Document.startViewTransition?`,
+  `ViewTransition`, and `NavHistoryState` types (the View Transitions API is
+  not in this toolchain's DOM lib).
+
+### Motion tokens + keyframe rename + View Transition CSS (3.13, 3.14)
+
+`frontend/src/styles/motion.css`:
+- `@keyframes drawer-in` → `@keyframes sheet-in`, body changed from
+  `translateX(20px)` to `translateY(12px)` (keeps the `opacity: 0.4` start;
+  now reads as a rise). Used by `.drawer`, `.lyrics`, `.watch__skip`
+  (references updated in `drawer.css`, `lyrics.css`, `misc-chips.css`).
+- New `@keyframes sheet-up { from { transform: translateY(100%) } }` — the full
+  slide-up for mobile bottom sheets and the now-playing fallback.
+- New `::view-transition-old(root) / ::view-transition-new(root)` rule using
+  `var(--dur-base) var(--ease-emphasized)`; the reduced-motion `@media` block
+  now also `animation: none !important` on `::view-transition-group/old/new(*)`.
+- `@keyframes eq` (900ms loop) and `@keyframes spin` (0.7s loop) left as-is —
+  they are infinite keyframe loops, not the "inline transition durations" the
+  search-replace map targets.
+- Every inline `transition:` / `animation:` duration in `styles/**` replaced
+  with `--dur-*` / `--ease-*`: hover/focus/color/opacity micro → `var(--dur-fast)
+  var(--ease-standard)` (0.12/0.14s sites) or `var(--dur-base) var(--ease-standard)`
+  (0.15/0.16s sites); larger movement (`transform 0.25s`, all sheet/drawer
+  animations) → `var(--dur-slow) var(--ease-emphasized)`. Files touched:
+  `sidebar.css` (rewritten), `player.css`, `drawer.css`, `lyrics.css`,
+  `misc-chips.css`, `track.css`, `buttons.css`, `search.css`, `video.css`,
+  `playlists.css`, `saved-video.css`. `settings.css` `.theme-toggle` already
+  tokenised in Slice 1. Verified: `rg "[0-9]\.[0-9]+s|[0-9]+ms"` in
+  `styles/**/*.css` now only matches token-adjacent values, the two loop
+  keyframes, the `0.001ms` guard, and the negative `eq` delays.
+- `QueuePanel.tsx` / `LyricsPanel.tsx` need **no** code change: bottom-sheet
+  behaviour is a pure `@media (max-width: 859.98px)` restyle in `drawer.css` /
+  `lyrics.css` — `.drawer` / `.lyrics` become `left/right/bottom: 0; width: 100%;
+  border-radius: 18px 18px 0 0; z-index: 101` (above the bottom-nav) with
+  `animation: sheet-up …`; the scrim goes `z-index: 100`. Desktop drawer /
+  centered-modal bytes are unchanged and still use `sheet-in`.
+
+### No animation library (3.15)
+
+`frontend/package.json` untouched — `dependencies` are still only `plyr`,
+`react`, `react-dom`. `rg "framer-motion|gsap|\"motion\""` → nothing.
+
+## HARD PRESERVATION checks (per the 6 points in the brief)
+
+| # | Point | Result | Proof |
+|---|-------|--------|-------|
+| 1 | `PlayerBar` mounts once at shell level, outside swappable content, never remounts; background audio survives every view change + full-screen open | **PASS** | `App.tsx:132` — `<PlayerBar />` is an unconditional, key-less direct child of `.app`, sibling of `<main>{content}</main>`. `go()` / `applyState()` only call `setView` / `setWatching` / `setOpenPlaylist`, which re-render `content` only. Nothing wraps or keys `<PlayerBar />`. The full-screen now-playing is a class toggle on the existing `<footer>` (`PlayerBar.tsx` `expanded` state) — same element, no unmount. |
+| 2 | MediaSession metadata + action handlers in `PlayerBar.tsx` untouched | **PASS** | `PlayerBar.tsx` `useEffect([current])` (the `MediaMetadata` + 8 `setActionHandler` calls + `setPositionState`) is byte-identical to pre-slice. The slice only added an `expanded` state block, a `popstate` effect, and the `flushSync` import above it. |
+| 3 | Plyr PiP on the `<video>` in `WatchView.tsx` stays available | **PASS** | `WatchView.tsx` is byte-unchanged (`git diff` shows no hunk). `controls` array still contains `"pip"` and `"fullscreen"`. `watch.css` mobile block only sets `position`/`z-index`/`border-radius` on `.watch__stage` and `.watch__stage .plyr` — no rule targets `.plyr__controls` / `.plyr__control`, no `display:none` / `visibility` / `pointer-events`, container not replaced. |
+| 4 | Web Audio volume-leveling, radio auto-extend, keyboard shortcuts, scrobble hooks in `PlayerBar.tsx` untouched | **PASS** | `buildGraph` / `routeGraph` / `toggleLevel` / `LEVEL_KEY`, the `ended`-event radio `useEffect`, the `keydown` `useEffect`, and `scrobbleNowPlaying` / `scrobbleSubmit` call sites are all byte-identical. Only `.player__toggle` styling changed (transition tokenised; `.is-on` rule untouched). |
+| 5 | Full-screen now-playing is an expansion of the existing player state (same `usePlayer()`, same `<audio>`, same Plyr) — not a second player; shows/hides via CSS/state | **PASS** | `PlayerBar.tsx` — no new component, no `createPortal`, no second `<audio>` / `new Plyr`. `expanded` is one boolean; `player--expanded` is a CSS class on the one existing `<footer>`. `audioRef` / `plyrRef` / `usePlayer()` destructure unchanged. |
+| 6 | `App.tsx` view-state model stays (`view` / `watching` / `openPlaylist` `useState`), no react-router | **PASS** | `App.tsx` still has exactly those three `useState` hooks. No `react-router*` import anywhere; `frontend/package.json` has no router dep. History sync is ~30 lines of `history.pushState` / `replaceState` / `popstate`. |
+
+No task required violating any preservation point — nothing to STOP for.
+
+## Deviations from design / brief
+
+1. **Bottom-nav uses `position: sticky` (design.md + tasks.md 3.3), not
+   `position: fixed`** as the orchestrator prose summary (§2) said. tasks.md 3.3
+   and design.md both specify `sticky; bottom: 0` with player + nav as in-flow
+   `auto` grid rows — that inherently prevents overlap without a
+   `padding-bottom` reservation for the bar, so `.main` only needs the design's
+   `8px`. Followed the artifact (tasks.md/design.md), not the prose.
+2. **`.player__meta` is now a `<button>`** wrapping the artwork + text (the
+   expand tap target). A `<div className="player__text">` sits inside it — flow
+   content inside `<button>` is universally rendered by browsers and does not
+   trigger React DOM-nesting warnings, but it is not strictly spec-valid
+   phrasing content. Slice 4's restyle can revisit the exact element.
+3. **`sheet-in` keyframe body changed** (`translateX(20px)` → `translateY(12px)`)
+   so the renamed keyframe reads as a rise for the queue/lyrics sheets. The
+   skip-flash (`.watch__skip`) now rises 12px instead of sliding 20px from the
+   right — a small, intentional motion change, not a regression in the spec
+   sense. The full bottom-sheet slide is a **separate** `sheet-up` keyframe
+   (`translateY(100%)`), used in the mobile media queries + now-playing.
+4. **`QueuePanel.tsx` / `LyricsPanel.tsx` unchanged** — task 3.14 is satisfied
+   by CSS media queries alone (bottom-sheet position + `sheet-up` animation).
+   No component logic needed touching.
+5. **View Transition on the now-playing expand** is wrapped in PlayerBar's own
+   `flipExpanded` (its internal `expanded` state), which is legitimate and
+   intended by the motion-system spec ("expanding the mini player animates
+   artwork and title as shared elements"). The brief's "never wrap anything
+   that touches `PlayerBar`" applies to `App.go()` — App never wraps or
+   re-renders PlayerBar; confirmed.
+6. **New file `frontend/src/global.d.ts`** — needed for `Document.startViewTransition`
+   typing (not in `lib.dom` for TS 5.6). Not in the design's file list but
+   required for a clean typecheck.
+7. **`node_modules` absent** in this environment → `tsc --noEmit` reports
+   `Cannot find module 'react'` for every file; could not run a real
+   typecheck. Types were reviewed by hand (see notes above).
+
+## Files changed (Slice 3)
+
+| File | Action | What |
+|------|--------|------|
+| `frontend/src/components/Sidebar.tsx` → `Nav.tsx` | Renamed + rewritten | `<nav>` semantics, `aria-current="page"`, `.nav*` classes, same props + `NAV` array + count badge |
+| `frontend/src/App.tsx` | Modified | `Nav` import; `NavState`/`DEFAULT_STATE`; `go()` + `applyState()`; mount `replaceState`; `popstate` effect; `startViewTransition` (+ `flushSync`) around content swap; `back = history.back` |
+| `frontend/src/components/PlayerBar.tsx` | Modified | `expanded` state + `flipExpanded`/`openExpanded`/`closeExpanded` + `popstate` effect; `player--expanded` class / `data-expanded` / `role`; `.player__meta` → `<button>`; `.player__collapse`; `flushSync` import. Audio/Plyr/MediaSession/radio/keyboard/leveling/scrobble untouched |
+| `frontend/src/components/Icon.tsx` | Modified | `chevronDown`, `chevronUp` glyphs (24×24 stroke) |
+| `frontend/src/global.d.ts` | Created | `Document.startViewTransition?`, `ViewTransition`, `NavHistoryState` ambient types |
+| `frontend/src/styles/components/sidebar.css` | Rewritten | `.nav` left rail `>= 860px` + `@media (max-width: 859.98px)` bottom bar |
+| `frontend/src/styles/layout.css` | Modified | `.app` areas `sidebar`→`nav`; old `@media (max-width: 900px)` block replaced by `@media (max-width: 859.98px)` (single-col, `main/player/nav` rows, restores `.player__center`) |
+| `frontend/src/styles/motion.css` | Modified | `drawer-in`→`sheet-in` (body → `translateY`); new `sheet-up`; `::view-transition-*(root)` rule + reduced-motion nullifier |
+| `frontend/src/styles/components/player.css` | Modified | button resets on `.player__meta`; `view-transition-name` np-art/np-title; `.player__collapse`; mobile mini-player block; `.player--expanded` full-screen block; toggle transition tokenised |
+| `frontend/src/styles/components/watch.css` | Modified | `@media (max-width: 859.98px)` full-screen stage block (wrapper only) |
+| `frontend/src/styles/components/drawer.css` | Modified | `sheet-in` ref; `@media` bottom-sheet block (`sheet-up`, `z-index` over nav) |
+| `frontend/src/styles/components/lyrics.css` | Modified | `sheet-in` ref; transition tokenised; `@media` bottom-sheet block |
+| `frontend/src/styles/components/misc-chips.css` | Modified | `sheet-in` ref; `.player__download` transition tokenised |
+| `frontend/src/styles/components/{track,buttons,search,video,playlists,saved-video}.css` | Modified | inline transition/anim durations → `--dur-*` / `--ease-*` tokens |
+| `frontend/src/styles/index.css` | Modified | doc comment `900px` → `859.98px` (import list unchanged) |
+| `openspec/changes/redesign-and-history/tasks.md` | Modified | Slice 3 checkboxes 3.1–3.20 `[x]`, 3.21 deferred |
+
+## Not done / deferred
+
+- **3.21** — `npm run dev` manual verification (no dev server in this env).
+  Reviewer checklist:
+  1. **Breakpoint**: resize slowly across 860px. `>= 860`: left rail only, no
+     bottom bar. `< 860`: bottom bar only, no rail. Never both.
+  2. **No overlap**: at 375px and 800px wide, scroll every view to the end —
+     the last row clears both the mini-player and the bottom nav.
+  3. **Mobile transport**: at 375px, load a track — play/pause + a draggable
+     seek bar are visible and work in the mini-player. Native `<audio>` is
+     never `display:none` (DevTools → Elements).
+  4. **Full-screen now-playing**: tap the mini-player artwork/title → full
+     screen with large art, title, prev/next, seek, and Radio/Lyrics/Queue
+     (same toggles). Chevron-down collapses. On a Chromium engine the artwork
+     morphs (View Transition); elsewhere it slides up.
+  5. **Background audio + single mount**: add a temporary
+     `console.count("PlayerBar mount")` at the top of `PlayerBar`. Play audio,
+     then: switch all 5 nav views, open/close a video, open/close full-screen
+     now-playing, open/close the queue + lyrics sheets. Audio never stops; the
+     count logs exactly once.
+  6. **Back gesture**: `search → library → settings`, browser Back → `library`,
+     Back → `search`. Open a video, Back → closes watch (app not exited). Open
+     full-screen now-playing, Back → collapses it (app not exited).
+  7. **PiP + fullscreen**: open a video, confirm the Plyr PiP and fullscreen
+     buttons are present and work; SponsorBlock chip still toggles/skips.
+  8. **MediaSession**: from the OS lock screen / media popup, play/pause/next/
+     prev/seek still control playback.
+  9. **Web Audio leveling / radio / shortcuts / scrobble**: toggle the level
+     button (audible compression), let a radio queue auto-extend on track end,
+     use Space / ←/→ / n / p / m, confirm a Last.fm scrobble still fires.
+  10. **Reduced motion**: DevTools → Rendering → emulate
+      `prefers-reduced-motion: reduce`. View swaps and sheet/now-playing
+      openings are instant; no console error; no View Transition animation.
+  11. **Both themes**: repeat the nav + full-screen + sheet checks in light and
+      dark (Settings → Tema).

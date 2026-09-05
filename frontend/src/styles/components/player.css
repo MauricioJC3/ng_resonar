@@ -16,6 +16,17 @@
   align-items: center;
   gap: 13px;
   min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.player__meta:disabled {
+  cursor: default;
 }
 
 .player__art {
@@ -24,6 +35,7 @@
   border-radius: 9px;
   object-fit: cover;
   flex-shrink: 0;
+  view-transition-name: np-art;
 }
 
 .player__art--empty {
@@ -45,6 +57,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  view-transition-name: np-title;
 }
 
 .player__artist {
@@ -113,7 +126,9 @@
   font-weight: 600;
   padding: 7px 12px;
   border-radius: 999px;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color var(--dur-base) var(--ease-standard),
+    border-color var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard);
 }
 
 .player__toggle:hover {
@@ -141,4 +156,162 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Collapse control — only rendered while the full-screen view is open. */
+.player__collapse {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg-elev-2);
+  color: var(--text-dim);
+  transition: color var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard);
+}
+
+.player__collapse:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+/* ---------- Mobile mini-player (transport restored, never display:none) ---------- */
+@media (max-width: 859.98px) {
+  .player {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "meta actions"
+      "center center";
+    align-items: center;
+    gap: 6px 10px;
+    padding: 8px 12px;
+  }
+
+  .player__meta {
+    grid-area: meta;
+  }
+
+  .player__actions {
+    grid-area: actions;
+    gap: 4px;
+  }
+
+  .player__center {
+    grid-area: center;
+    display: flex;
+  }
+
+  .player__center .plyr {
+    width: 100%;
+  }
+
+  /* Prev/next live in the full-screen view on mobile; keep the seek bar here. */
+  .player__transport {
+    display: none;
+  }
+
+  .player__download {
+    display: none;
+  }
+
+  /* Trim the mini-player action row; full set is in the full-screen view. */
+  .player__toggle {
+    padding: 7px 9px;
+  }
+
+  .player__toggle span:not(.player__badge) {
+    display: none;
+  }
+}
+
+/* ---------- Full-screen now-playing (CSS expansion of this same footer) ---------- */
+.player--expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  grid-template-columns: none;
+  grid-template-areas: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: 72px 24px calc(36px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  animation: sheet-up var(--dur-slow) var(--ease-emphasized);
+}
+
+.player--expanded .player__meta {
+  grid-area: auto;
+  flex-direction: column;
+  gap: 22px;
+  cursor: default;
+  max-width: min(90vw, 420px);
+}
+
+.player--expanded .player__art {
+  width: min(72vw, 340px);
+  height: min(72vw, 340px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.player--expanded .player__text {
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.player--expanded .player__title {
+  font-size: 20px;
+  white-space: normal;
+}
+
+.player--expanded .player__artist {
+  font-size: 14px;
+  white-space: normal;
+}
+
+.player--expanded .player__center {
+  grid-area: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 14px;
+  width: min(92vw, 460px);
+}
+
+.player--expanded .player__center .plyr {
+  width: 100%;
+}
+
+.player--expanded .player__transport {
+  display: flex;
+  gap: 18px;
+}
+
+.player--expanded .player__transport button {
+  width: 46px;
+  height: 46px;
+}
+
+.player--expanded .player__actions {
+  grid-area: auto;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.player--expanded .player__download {
+  display: inline-flex;
+}
+
+.player--expanded .player__toggle span:not(.player__badge) {
+  display: inline;
 }

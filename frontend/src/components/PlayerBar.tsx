@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 
@@ -19,6 +20,13 @@ import LyricsPanel from "./LyricsPanel";
 
 const LEVEL_KEY = "resonar:level";
 
+function reducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 export default function PlayerBar() {
   const { current, next, prev, hasNext, radio, toggleRadio, appendMany, queue } =
     usePlayer();
@@ -27,6 +35,41 @@ export default function PlayerBar() {
   const plyrRef = useRef<Plyr | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
+
+  // Full-screen now-playing = pure CSS expansion of this same footer. No new
+  // component, no second <audio>/Plyr — only this boolean flips.
+  const [expanded, setExpanded] = useState(false);
+
+  function flipExpanded(v: boolean) {
+    if (
+      typeof document.startViewTransition === "function" &&
+      !reducedMotion()
+    ) {
+      document.startViewTransition(() => flushSync(() => setExpanded(v)));
+    } else {
+      setExpanded(v);
+    }
+  }
+
+  function openExpanded() {
+    if (!current || expanded) return;
+    // Push a history entry so the Back gesture collapses instead of leaving.
+    history.pushState({ ...(history.state || {}), np: true }, "");
+    flipExpanded(true);
+  }
+
+  function closeExpanded() {
+    if ((history.state as NavHistoryState | null)?.np) history.back();
+    else flipExpanded(false);
+  }
+
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      flipExpanded(Boolean((e.state as NavHistoryState | null)?.np));
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const nextRef = useRef(next);
   const prevRef = useRef(prev);
@@ -292,8 +335,29 @@ export default function PlayerBar() {
       <QueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} />
       <LyricsPanel open={lyricsOpen} onClose={() => setLyricsOpen(false)} />
 
-      <footer className="player">
-        <div className="player__meta">
+      <footer
+        className={"player" + (expanded ? " player--expanded" : "")}
+        data-expanded={expanded || undefined}
+        role={expanded ? "dialog" : undefined}
+        aria-label={expanded ? "Reproduciendo ahora" : undefined}
+      >
+        {expanded && (
+          <button
+            className="player__collapse"
+            onClick={closeExpanded}
+            aria-label="Contraer reproductor"
+          >
+            <Icon name="chevronDown" size={22} />
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="player__meta"
+          onClick={openExpanded}
+          disabled={!current}
+          aria-label="Abrir pantalla completa"
+        >
           {current?.thumbnail ? (
             <img src={current.thumbnail} alt="" className="player__art" />
           ) : (
@@ -309,7 +373,7 @@ export default function PlayerBar() {
               {current?.artists.join(", ") ?? "Elige una canción"}
             </span>
           </div>
-        </div>
+        </button>
 
         <div className="player__center">
           <div className="player__transport">

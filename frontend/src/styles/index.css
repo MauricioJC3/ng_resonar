@@ -1,6 +1,6 @@
 /* Composition root — @import order == cascade order.
    Reproduces the original top-to-bottom order of the pre-split stylesheet.
-   layout.css is imported last so its `@media (max-width: 900px)` block keeps
+   layout.css is imported last so its `@media (max-width: 859.98px)` block keeps
    its end-of-cascade position over the component rules it overrides. */
 
 @import "./tokens.css";

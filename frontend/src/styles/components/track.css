@@ -78,7 +78,7 @@
   background: var(--scrim);
   color: var(--on-media);
   opacity: 0;
-  transition: opacity 0.14s;
+  transition: opacity var(--dur-fast) var(--ease-standard);
 }
 
 .track:hover .track__art-play {
@@ -134,7 +134,7 @@
   background: transparent;
   color: var(--text-dim);
   opacity: 0;
-  transition: opacity 0.12s, color 0.12s, background 0.12s;
+  transition: opacity var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard), background var(--dur-fast) var(--ease-standard);
 }
 
 .track:hover .track__icon {

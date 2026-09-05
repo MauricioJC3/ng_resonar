@@ -35,7 +35,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.25s ease;
+  transition: transform var(--dur-slow) var(--ease-emphasized);
 }
 
 .vcard:hover .vcard__thumb img {
@@ -67,7 +67,7 @@
     color-mix(in srgb, var(--stage-bg) 15%, transparent)
   );
   opacity: 0;
-  transition: opacity 0.16s;
+  transition: opacity var(--dur-base) var(--ease-standard);
 }
 
 .vcard__play::before {

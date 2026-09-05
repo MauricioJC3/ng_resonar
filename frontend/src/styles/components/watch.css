@@ -76,3 +76,34 @@
   color: var(--text-dim);
   margin: 0 0 4px;
 }
+
+/* ---------- Full-screen watch stage on mobile ---------- */
+/* Plyr controls (incl. pip / fullscreen) are never touched — only the stage
+   wrapper is repositioned; "A continuación" scrolls beneath it. */
+@media (max-width: 859.98px) {
+  .watch__stage {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 70;
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .watch__stage .plyr {
+    border-radius: 0;
+  }
+
+  .watch {
+    padding-top: min(56.25vw, 60vh);
+  }
+
+  .watch__back {
+    position: fixed;
+    top: calc(8px + env(safe-area-inset-top));
+    left: 8px;
+    z-index: 71;
+    margin-bottom: 0;
+  }
+}
