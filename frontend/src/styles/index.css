@@ -8,6 +8,7 @@
 @import "./motion.css";
 @import "./components/sidebar.css";
 @import "./components/shared.css";
+@import "./components/home.css";
 @import "./components/search.css";
 @import "./components/track.css";
 @import "./components/video.css";

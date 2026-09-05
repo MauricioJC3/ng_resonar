@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 
 import Nav from "./components/Nav";
+import HomeView from "./components/HomeView";
 import SearchView from "./components/SearchView";
 import VideosView from "./components/VideosView";
 import PlaylistsView from "./components/PlaylistsView";
@@ -13,7 +14,13 @@ import PlayerBar from "./components/PlayerBar";
 import { PlayerProvider } from "./state/player";
 import type { VideoItem } from "./types";
 
-export type View = "search" | "videos" | "playlists" | "library" | "settings";
+export type View =
+  | "home"
+  | "search"
+  | "videos"
+  | "playlists"
+  | "library"
+  | "settings";
 
 interface NavState {
   view: View;
@@ -22,7 +29,7 @@ interface NavState {
 }
 
 const DEFAULT_STATE: NavState = {
-  view: "search",
+  view: "home",
   watching: null,
   openPlaylist: null,
 };
@@ -112,6 +119,8 @@ export default function App() {
     );
   } else if (view === "playlists" && openPlaylist) {
     content = <PlaylistDetailView id={openPlaylist} onBack={back} />;
+  } else if (view === "home") {
+    content = <HomeView />;
   } else if (view === "search") {
     content = <SearchView />;
   } else if (view === "videos") {

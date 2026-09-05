@@ -3,6 +3,7 @@ import { useLibrary } from "../state/library";
 import Icon from "./Icon";
 
 const NAV: { id: View; label: string; icon: string }[] = [
+  { id: "home", label: "Inicio", icon: "home" },
   { id: "search", label: "Buscar", icon: "search" },
   { id: "videos", label: "Videos", icon: "video" },
   { id: "playlists", label: "Playlists", icon: "list" },
