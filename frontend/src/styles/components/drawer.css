@@ -71,7 +71,7 @@
 }
 
 .qrow--now {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  background: var(--accent-wash);
 }
 
 .qrow__main {
@@ -110,7 +110,7 @@
 }
 
 .qrow--now .qrow__title {
-  color: var(--accent-soft);
+  color: var(--accent);
 }
 
 .qrow__artist {
@@ -166,9 +166,27 @@
     max-height: 80vh;
     border-left: 0;
     border-top: 1px solid var(--line);
-    border-radius: 18px 18px 0 0;
+    border-radius: 16px 16px 0 0;
     box-shadow: 0 -20px 60px var(--scrim);
     animation: sheet-up var(--dur-slow) var(--ease-emphasized);
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Grip handle */
+  .drawer::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--text-faint);
+    opacity: 0.5;
+  }
+
+  .drawer__head {
+    padding-top: 20px;
   }
 }

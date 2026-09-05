@@ -12,11 +12,12 @@
   align-items: center;
   gap: 14px;
   padding: 8px;
-  border-radius: 12px;
+  border-radius: 10px;
+  transition: background var(--dur-fast) var(--ease-standard);
 }
 
 .srow:hover {
-  background: var(--bg-elev);
+  background: var(--bg-elev-2);
 }
 
 .srow__thumb {
@@ -66,12 +67,13 @@
   position: absolute;
   right: 5px;
   bottom: 5px;
-  background: color-mix(in srgb, var(--stage-bg) 82%, transparent);
+  background: var(--scrim);
   color: var(--on-media);
   font-size: 11px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: 2px 5px;
+  border-radius: 5px;
 }
 
 .srow__info {

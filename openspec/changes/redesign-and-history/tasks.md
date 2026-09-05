@@ -90,18 +90,18 @@ Chain strategy: pending
 
 className / component-CSS only - no logic change in any `.tsx`.
 
-- [ ] 4.1 Restyle tracklist + rows in `frontend/src/styles/components/track.css` (+ class-string tweaks only in the tracklist / `TrackRow` components).
-- [ ] 4.2 Restyle the player bar in `frontend/src/styles/components/player.css`.
-- [ ] 4.3 Restyle the watch view in `frontend/src/styles/components/watch.css` - only `.watch` / `.watch__stage` background + radii token-ised; Plyr controls untouched.
-- [ ] 4.4 Restyle queue + lyrics as bottom sheets in `frontend/src/styles/components/drawer.css` and `frontend/src/styles/components/lyrics.css`.
-- [ ] 4.5 Restyle playlists in `frontend/src/styles/components/playlist.css`.
-- [ ] 4.6 Restyle the video grid + cards in `frontend/src/styles/components/video.css`.
-- [ ] 4.7 Restyle search in `frontend/src/styles/components/search.css`.
-- [ ] 4.8 Restyle settings in `frontend/src/styles/components/settings.css`.
-- [ ] 4.9 Restyle library + empty states in `frontend/src/styles/components/shared.css` (`.hint`, `.empty*`, `.badge*`, `.chip*`, `.spinner`).
-- [ ] 4.10 Add "resonance rings" behind the full-screen artwork: 3 concentric `border` circles with staggered `@keyframes ring { to { transform: scale(1.6); opacity: 0 } }` in `frontend/src/styles/motion.css`, fully removed by the reduced-motion guard.
-- [ ] 4.11 CHECK (preservation) on `npm run dev`: only class strings / CSS changed (no component logic) - background audio, `PlayerBar` single-mount, MediaSession, Plyr PiP, Web Audio leveling, radio auto-extend, keyboard shortcuts, and scrobble all still work after the restyle.
-- [ ] 4.12 Verify on `npm run dev`: per-view visual pass in both light and dark, with reduced-motion on and off.
+- [x] 4.1 Restyle tracklist + rows in `frontend/src/styles/components/track.css` (+ class-string tweaks only in the tracklist / `TrackRow` components). _(CSS only — no `.tsx` touched. Flat rows, hover lift to `--bg-elev-2`, `--accent-wash` active, 10px radius, `--accent` active title, floating menus on `--bg-elev` + `--shadow`, 12px radius.)_
+- [x] 4.2 Restyle the player bar in `frontend/src/styles/components/player.css`. _(Slimmer Plyr range track scoped to `.player`; `--accent-wash` toggle on-state; Fraunces expanded now-playing title; 16px artwork radius + soft shadow; faint accent wash on the expanded surface.)_
+- [x] 4.3 Restyle the watch view in `frontend/src/styles/components/watch.css` - only `.watch` / `.watch__stage` background + radii token-ised; Plyr controls untouched. _(Kept strictly to wrapper/typography: HD badge → neutral `--scrim` media pill, `.watch__title` balance + tighter tracking, `.watch__subhead` → section label. No `.plyr*` rule added; `WatchView.tsx` byte-unchanged.)_
+- [x] 4.4 Restyle queue + lyrics as bottom sheets in `frontend/src/styles/components/drawer.css` and `frontend/src/styles/components/lyrics.css`. _(Mobile `::before` grip handle, 16px top radius, `--scrim` backdrop already in place; `--accent-wash` now-playing row + `--accent` title; synced active lyric line → `--accent`.)_
+- [x] 4.5 Restyle playlists in `frontend/src/styles/components/playlists.css` (filename per Slice 2 banner split). _(Hairline `--line-soft` border on card art, Fraunces `.plcard__name`, calmer 1.03 hover scale, more grid air, `text-wrap: balance` on the detail `h1`.)_
+- [x] 4.6 Restyle the video grid + cards in `frontend/src/styles/components/video.css`. _(Corner duration pill → `--on-media` on `--scrim`; solid `--accent` play chip; calmer 1.03 hover; tabular-nums on `.vcard__meta` view counts.)_
+- [x] 4.7 Restyle search in `frontend/src/styles/components/search.css`. _(Calmer focus ring `0 0 0 3px var(--accent-wash)`; autocomplete dropdown → `--bg-elev` soft floating menu, 14px radius, `--shadow`.)_
+- [x] 4.8 Restyle settings in `frontend/src/styles/components/settings.css`. _(Cards → hairline `--line` border + `--radius`, more padding; Fraunces `.card__head h2`; `.theme-toggle[aria-checked="true"]` → `--accent-wash` + `--accent`; `--accent-wash` focus ring on `.field input`.)_
+- [x] 4.9 Restyle library + empty states in `frontend/src/styles/components/shared.css` + `buttons.css` + `misc-chips.css` (`.hint`, `.empty*`, `.badge*`, `.chip*`, `.spinner`, `.segmented`). _(Empty state gets a muted `♪` `::before` glyph + balanced copy; `.btn--accent` → solid sage (no gradient); `.btn--ghost` truly borderless; `.segmented button.is-on` + `.chip--on` → `--accent-wash` + `--accent`; spinner tinted `--accent`; `.eq i` → `--accent`.)_
+- [x] 4.10 Add "resonance rings" behind the full-screen artwork: 3 concentric `border` circles with staggered `@keyframes ring` in `frontend/src/styles/motion.css`, fully removed by the reduced-motion guard. _(`@keyframes ring` (scale .72→1.6, opacity .4→0) + `.player__rings` styling in `player.css`; `.player__rings { display: none !important }` inside the reduced-motion guard. One minimal decorative markup add in `PlayerBar.tsx` — see markup_changes.)_
+- [x] 4.11 CHECK (preservation): only class strings / CSS changed (plus one decorative `aria-hidden` span). No `useEffect`, handler, ref, state hook, Plyr config, MediaSession, audio/video element, API call, or prop/data-flow edit. Manual `npm run dev` re-confirmation deferred to reviewer (checklist in apply-progress.md).
+- [ ] 4.12 Verify on `npm run dev`: per-view visual pass in both light and dark, with reduced-motion on and off. _(Deferred — no dev server / build in this environment. Reviewer checklist in apply-progress.md.)_
 
 ## Slice 5: Playback history - backend + client hooks (PR 5)
 

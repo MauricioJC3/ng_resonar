@@ -636,3 +636,224 @@ No task required violating any preservation point — nothing to STOP for.
       openings are instant; no console error; no View Transition animation.
   11. **Both themes**: repeat the nav + full-screen + sheet checks in light and
       dark (Settings → Tema).
+
+---
+
+# Slice 4 — Per-view restyle passes (PR 4)
+
+Mode: **Standard** (`strict_tdd: false`, no test runner). Engram MCP down —
+progress persisted to this file only. No dev server / build / docker run
+(brief + project rule). className / component-CSS only.
+
+## Status
+
+| Task | State |
+|------|-------|
+| 4.1–4.11 | done (`[x]`) — 4.11 is a code-level preservation assertion; manual `npm run dev` re-confirmation deferred |
+| 4.12 | deferred — manual `npm run dev` visual pass (checklist below) |
+
+## What was done — the "cool & serene" pass, per area
+
+All changes are className/CSS. The **only** JSX edit in the whole slice is a
+3-line decorative `aria-hidden` span in `PlayerBar.tsx` (task 4.10 rings) — no
+state, no handler, no effect, no prop, no data-flow touched.
+
+### App shell / `.main` / `.view*` (`layout.css`)
+- View padding `34px 44px 56px` → `40px 52px 72px`; mobile `20px 16px 8px` →
+  `24px 18px 10px` (more air).
+- Decorative accent gradient washes retuned to a faint mist: `--accent` glow
+  `16%` → `9%`, `--accent-2` `9%` → `6%`, radii nudged up.
+- `.view__title`: tracking `-0.01em` → `-0.015em`, `text-wrap: balance`,
+  bottom-margin `22px` → `28px` (Fraunces already applied in Slice 1).
+- `.view__subhead` repurposed as the **section label**: `0.72rem`, weight 700,
+  uppercase, letter-spacing `0.14em`, `--text-faint`, `30px` top margin.
+
+### Nav (`sidebar.css`)
+- Active item: heavy `linear-gradient` fill → `background: var(--accent-wash)` +
+  `color: var(--accent)` (icon + label + count), weight bumps 500 → 600 only
+  when active.
+- Idle `.nav__item` weight `600` → `500`; `.nav__brand` weight `600` → `500`,
+  tracking `+0.01em` → `-0.01em`. Row radius `11px` → `10px`.
+- `.nav__count` → `--accent-wash` bg + `--accent` text (was `color-mix accent 25%`).
+- Rail padding `26px` → `30px`, gap `26px` → `30px`.
+
+### Track list + rows (`track.css`)
+- `.track:hover` `--bg-elev` → `--bg-elev-2` (flat row, hover lift); row radius
+  `11px` → `10px`; row padding `8px 12px` → `10px 12px`; added a `background`
+  transition on the row.
+- `.track--active` `color-mix(accent 15%)` → `var(--accent-wash)`;
+  `.track--active .track__title` `--accent-soft` → `--accent`.
+- Download / add-to-playlist menus → light floating menus: `--bg-elev-2` →
+  `--bg-elev`, radius `10px` → `12px`, item hover `--bg-elev` → `--bg-elev-2`,
+  padding trimmed. `--shadow` kept.
+
+### Player bar + full-screen now-playing (`player.css`)
+- `.player` scopes `--plyr-range-track-height: 4px` / thumb `12px` (slim
+  progress) for its Plyr subtree only.
+- `.player__art` radius `9px` → `10px`.
+- `.player__toggle.is-on` `--accent-2` wash → `--accent` + `--accent-wash`
+  (active chip = wash, not heavy fill).
+- Expanded surface gets a faint top `--accent` radial wash over `--bg`.
+- `.player--expanded .player__art` radius `var(--radius)` → `16px`, keeps
+  `--shadow`; `position: relative; z-index: 1`.
+- `.player--expanded .player__title` → Fraunces 500, `-0.015em`,
+  `text-wrap: balance`.
+- **Resonance rings** (task 4.10): `@keyframes ring` (scale `.72`→`1.6`,
+  opacity `.4`→`0`) in `motion.css`; `.player__rings` + 3 `i` circles
+  (`border: 1px solid var(--accent)`, staggered `1.2s` / `2.4s` delays,
+  `3.6s` infinite) in `player.css`. `.player__rings { display: none !important }`
+  inside the reduced-motion guard → fully removed.
+
+### Watch view (`watch.css`) — deliberately narrow per task 4.3
+- `.watch__hd` recoloured to a neutral media pill:
+  `color-mix(var(--stage-bg) 62%, transparent)` bg + `--on-media` text
+  (was an `--accent-2`/black mix). Radius `6px` → `7px`.
+- `.watch__title` gains `-0.015em` + `text-wrap: balance`; `.watch__back` gains
+  a token transition; `.watch__subhead` → section label (matches `.view__subhead`).
+- **No `.plyr*` rule added, no control touched; `WatchView.tsx` byte-unchanged.**
+
+### Queue + Lyrics sheets (`drawer.css`, `lyrics.css`)
+- Mobile sheets: `::before` grip handle (36×4, `--text-faint` @ 50% opacity),
+  top radius `18px` → `16px`, head top-padding bumped so the grip clears the
+  title.
+- `.qrow--now` `color-mix(accent 15%)` → `--accent-wash`; `.qrow--now
+  .qrow__title` `--accent-soft` → `--accent`.
+- `.lyrics` modal radius `18px` → `16px`; `.lyrics__line.is-active` `--text` →
+  `--accent`.
+
+### Playlists (`playlists.css`)
+- `.plcard__art`: hairline `1px solid var(--line-soft)` border, radius `12px` →
+  `14px`; hover scale `1.05` → `1.03`.
+- `.plcard__name` → Fraunces 500, `-0.01em`, `14px` → `15px`.
+- `.plgrid` gap `20px 16px` → `26px 18px`; `.pldetail__head` margin `26px` →
+  `32px`; `.pldetail__meta h1` gains `text-wrap: balance`.
+
+### Video grid + cards (`video.css`)
+- `.vcard__dur` bg `color-mix(stage-bg 82%)` → `var(--scrim)`, weight 600,
+  radius `5px` → `6px` (corner pill = `--on-media` on `--scrim`).
+- `.vcard__play::before` circle `color-mix(accent 82%, black)` → solid
+  `var(--accent)`.
+- Hover scale `1.04` → `1.03`; `.vcard__title` `13.5px` → `14px`;
+  `.vcard__meta` gains `font-variant-numeric: tabular-nums` (view counts).
+
+### Search (`search.css`)
+- `.searchbar input:focus` ring `0 0 0 4px color-mix(accent 20%)` →
+  `0 0 0 3px var(--accent-wash)` (calm).
+- `.searchbar__suggestions` → soft floating menu: bg `--bg-elev-2` → `--bg-elev`,
+  radius `var(--radius)` → `14px`, item hover `--bg-elev` → `--bg-elev-2`.
+  `--shadow` kept.
+
+### Settings (`settings.css`)
+- `.card` border `--line-soft` → `--line` (hairline), padding `20px` → `22px`,
+  margin `18px` → `16px`.
+- `.card__head h2` → Fraunces 500, `16px` → `17px`, `-0.01em`.
+- `.theme-toggle[aria-checked="true"]` → `--accent-wash` + `--accent` +
+  accent-tinted border (Slice 1 toggle polished to match active-chip language).
+- `.field input:focus` gains `0 0 0 3px var(--accent-wash)`.
+
+### Library segmented + shared / empty / buttons (`buttons.css`, `shared.css`, `misc-chips.css`)
+- `.segmented button.is-on` `--bg-elev-2`/`--text` → `--accent-wash`/`--accent`
+  (Library tab selector).
+- `.chip--on` (SponsorBlock, ListenBrainz, Last.fm) `--accent-2` →
+  `--accent` + `--accent-wash` background.
+- `.btn--accent` `linear-gradient(--accent-soft, --accent)` → **solid**
+  `var(--accent)` + darker `color-mix` on hover.
+- `.btn--ghost` now truly borderless (`border-color: transparent` + hover
+  keeps it transparent, only text brightens).
+- `.spinner` tinted: ring `color-mix(currentColor 28%)`, top `var(--accent)`.
+- `.empty::before` → muted `♪` glyph (Fraunces, `--text-faint`, 50% opacity);
+  `.empty p` gains `text-wrap: balance`; `margin-top` `12vh` → `14vh`.
+- `.eq i` `--accent-soft` → `--accent` (playing-row equalizer).
+
+### Saved video rows (`saved-video.css`)
+- `.srow:hover` `--bg-elev` → `--bg-elev-2`; row radius `12px` → `10px`;
+  added `background` transition.
+- `.srow__dur` bg `color-mix(stage-bg 82%)` → `var(--scrim)`, weight 600,
+  radius `4px` → `5px`.
+
+## Markup changes (the only JSX touched in Slice 4)
+
+| File | Change | Why it is cosmetic-only |
+|------|--------|-------------------------|
+| `frontend/src/components/PlayerBar.tsx` | Added, right after the existing `{expanded && (<button className="player__collapse">…)}` block, a sibling `{expanded && current && (<span className="player__rings" aria-hidden="true"><i/><i/><i/></span>)}` | Purely decorative. `aria-hidden`, no text, no `onClick`/`onKeyDown`/`ref`, no new `useState`/`useEffect`. Gated on the **already-existing** `expanded` state + `current` guard (same condition style as the collapse button). Renders nothing unless the full-screen view is open and a track is loaded. Removes itself from layout under `prefers-reduced-motion` via `display:none !important`. Task 4.10 mandates "3 concentric border circles" and CSS pseudo-elements cap at 2 per element and don't render on the replaced `<img class="player__art">`, so 3 real elements are the minimum faithful implementation. |
+
+## Preservation check (Slice 4 = cosmetic)
+
+No `useEffect`, event handler, ref, state hook, Plyr config
+(`controls`/`settings`/`seekTime`/`keyboard`), MediaSession
+(`metadata`/`setActionHandler`/`setPositionState`), `<audio>`/`<video>`
+element, API call, or component prop / data-flow was edited.
+
+- `PlayerBar.tsx` — only the decorative `player__rings` span added; every
+  effect (Plyr lifecycle, `[current]` metadata block, radio `ended`, keyboard,
+  Web-Audio leveling), `audioRef`/`plyrRef`, `usePlayer()` destructure,
+  `scrobbleNowPlaying`/`scrobbleSubmit` sites, `expanded`/`popstate` logic —
+  all byte-unchanged.
+- `WatchView.tsx` — **byte-unchanged** (`git diff` shows no hunk). Plyr
+  `controls` array still `["play-large","play","progress","current-time",
+  "duration","mute","volume","settings","pip","fullscreen"]`. `watch.css`
+  added **no** `.plyr__controls`/`.plyr__control` rule and no
+  `display:none`/`visibility`/`pointer-events`; the stage container is not
+  replaced.
+- `TrackRow.tsx` / `PlaylistTrackRow.tsx` / `SearchView.tsx` /
+  `LibraryView.tsx` / `SettingsView.tsx` / `QueuePanel.tsx` /
+  `LyricsPanel.tsx` / `VideoCard.tsx` / `SavedVideoRow.tsx` /
+  `PlaylistsView.tsx` / `PlaylistDetailView.tsx` / `VideosView.tsx` /
+  `SearchBox.tsx` / `Nav.tsx` — **byte-unchanged**. Every restyle rode existing
+  class strings (`track--active`, `qrow--now`, `chip--on`, `is-on`,
+  `theme-toggle[aria-checked]`, `view__subhead`, `empty`, …).
+
+## Files changed (Slice 4)
+
+| File | Action | What |
+|------|--------|------|
+| `frontend/src/styles/layout.css` | Modified | View padding + air; gradient washes retuned; `.view__title` balance/tracking; `.view__subhead` → section label |
+| `frontend/src/styles/motion.css` | Modified | `@keyframes ring`; `.player__rings { display:none !important }` in the reduced-motion guard |
+| `frontend/src/styles/components/sidebar.css` | Modified | Active nav item → `--accent-wash`; calmer weights; count pill; row radius; rail air |
+| `frontend/src/styles/components/track.css` | Modified | Flat rows + hover lift `--bg-elev-2`; `--accent-wash` active; 10px radius; `--accent` active title; floating menus on `--bg-elev` |
+| `frontend/src/styles/components/player.css` | Modified | Slim Plyr track; `--accent-wash` toggle; expanded Fraunces title; 16px artwork; resonance-ring styling; faint wash |
+| `frontend/src/styles/components/watch.css` | Modified | HD badge → media pill; title balance; `.watch__subhead` → label; `.watch__back` transition (no Plyr rule) |
+| `frontend/src/styles/components/drawer.css` | Modified | Mobile grip handle; 16px top radius; `--accent-wash` now-playing row + `--accent` title |
+| `frontend/src/styles/components/lyrics.css` | Modified | Mobile grip handle; 16px radius; active synced line → `--accent` |
+| `frontend/src/styles/components/playlists.css` | Modified | Hairline border on card art; Fraunces `.plcard__name`; calmer hover; grid/detail air; `h1` balance |
+| `frontend/src/styles/components/video.css` | Modified | Duration pill → `--scrim`; solid `--accent` play chip; calmer hover; tabular-nums meta |
+| `frontend/src/styles/components/search.css` | Modified | Calm focus ring; autocomplete → soft `--bg-elev` floating menu |
+| `frontend/src/styles/components/settings.css` | Modified | Cards hairline border + padding; Fraunces headings; `.theme-toggle[aria-checked]`; focus ring on `.field input` |
+| `frontend/src/styles/components/buttons.css` | Modified | `.btn--accent` solid sage; `.btn--ghost` borderless; `.segmented .is-on` → `--accent-wash`; spinner tint |
+| `frontend/src/styles/components/shared.css` | Modified | `.empty::before` `♪` glyph + balanced copy + air; `.eq i` → `--accent` |
+| `frontend/src/styles/components/misc-chips.css` | Modified | `.chip--on` → `--accent` + `--accent-wash` |
+| `frontend/src/styles/components/saved-video.css` | Modified | Flat row hover `--bg-elev-2`; 10px radius; `.srow__dur` → `--scrim` |
+| `frontend/src/components/PlayerBar.tsx` | Modified | Decorative `player__rings` `aria-hidden` span (only when `expanded && current`) |
+| `openspec/changes/redesign-and-history/tasks.md` | Modified | Slice 4 checkboxes 4.1–4.11 `[x]`, 4.12 deferred |
+
+## Not done / deferred
+
+- **4.12** — `npm run dev` per-view visual pass. No dev server / build in this
+  environment. Reviewer checklist:
+  1. **Both themes** (Settings → Tema, light + dark) on every view: Search,
+     Videos, Watch, Playlists, playlist detail, Library (both tabs), Settings.
+  2. **Rows**: track / queue / saved-video rows are flat, lift to `--bg-elev-2`
+     on hover only; the playing row shows `--accent-wash` + `--accent` title +
+     sage equalizer.
+  3. **Active states**: nav active item, Library segmented control, SponsorBlock
+     / ListenBrainz / Last.fm chips, player Radio/Lyrics/Queue/Level toggles,
+     and the Settings Tema switch all read as `--accent-wash` + `--accent`
+     (no heavy fills).
+  4. **Section labels**: "Escucha algo ahora" / "En tendencia" / "Relacionados"
+     render as small uppercase tracked `--text-faint` labels.
+  5. **Empty states** (clear library / empty playlist / no search): centered,
+     muted `♪` glyph, faint copy, extra top air.
+  6. **Full-screen now-playing**: large 16px-radius artwork with soft shadow,
+     Fraunces title; **resonance rings** pulse behind the art. DevTools →
+     Rendering → emulate `prefers-reduced-motion: reduce` → rings vanish
+     entirely, no console error, view still usable.
+  7. **Menus**: track download / add-to-playlist menus and the search
+     autocomplete render as light `--bg-elev` floating menus with `--shadow`.
+  8. **Watch**: Plyr controls (incl. PiP + fullscreen) unchanged and operable;
+     HD badge legible over video; SponsorBlock chip toggles.
+  9. **Mobile (< 860px)**: queue + lyrics bottom sheets show the grip handle
+     and 16px top radius; slim mini-player progress bar.
+- **4.11** manual re-confirmation folded into the 4.12 pass (item 6 + 8):
+  confirm background audio, single `PlayerBar` mount, MediaSession, Plyr PiP,
+  Web-Audio leveling, radio auto-extend, keyboard shortcuts, and scrobble still
+  work after the restyle (no logic path was touched, so this is a sanity check).

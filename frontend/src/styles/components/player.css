@@ -6,9 +6,12 @@
   grid-template-columns: minmax(0, 1fr) minmax(320px, 2fr) minmax(0, 1fr);
   align-items: center;
   gap: 20px;
-  padding: 0 24px;
+  padding: 0 22px;
   background: var(--bg-elev);
   border-top: 1px solid var(--line-soft);
+  /* Slimmer transport range track for the calm mini-player. */
+  --plyr-range-track-height: 4px;
+  --plyr-range-thumb-height: 12px;
 }
 
 .player__meta {
@@ -32,7 +35,7 @@
 .player__art {
   width: 54px;
   height: 54px;
-  border-radius: 9px;
+  border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
   view-transition-name: np-art;
@@ -136,9 +139,9 @@
 }
 
 .player__toggle.is-on {
-  color: var(--accent-2);
-  border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
-  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-wash);
 }
 
 .player__badge {
@@ -243,12 +246,20 @@
   justify-content: center;
   gap: 26px;
   padding: 72px 24px calc(36px + env(safe-area-inset-bottom));
-  background: var(--bg);
+  background:
+    radial-gradient(
+      1100px 520px at 50% -10%,
+      color-mix(in srgb, var(--accent) 8%, transparent),
+      transparent 70%
+    ),
+    var(--bg);
   animation: sheet-up var(--dur-slow) var(--ease-emphasized);
 }
 
 .player--expanded .player__meta {
   grid-area: auto;
+  position: relative;
+  z-index: 1;
   flex-direction: column;
   gap: 22px;
   cursor: default;
@@ -256,10 +267,41 @@
 }
 
 .player--expanded .player__art {
+  position: relative;
+  z-index: 1;
   width: min(72vw, 340px);
   height: min(72vw, 340px);
-  border-radius: var(--radius);
+  border-radius: 16px;
   box-shadow: var(--shadow);
+}
+
+/* Concentric "resonance rings" behind the artwork. */
+.player__rings {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: min(72vw, 340px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.player__rings i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: ring 3.6s var(--ease-standard) infinite;
+}
+
+.player__rings i:nth-child(2) {
+  animation-delay: 1.2s;
+}
+
+.player__rings i:nth-child(3) {
+  animation-delay: 2.4s;
 }
 
 .player--expanded .player__text {
@@ -269,7 +311,11 @@
 }
 
 .player--expanded .player__title {
-  font-size: 20px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
   white-space: normal;
 }
 

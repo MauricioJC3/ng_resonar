@@ -34,7 +34,7 @@
 .searchbar input:focus {
   border-color: var(--accent);
   background: var(--bg-elev-2);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
 }
 
 .searchbar__clear {
@@ -67,9 +67,9 @@
   margin: 0;
   padding: 6px;
   list-style: none;
-  background: var(--bg-elev-2);
+  background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 14px;
   box-shadow: var(--shadow);
 }
 
@@ -85,7 +85,7 @@
 }
 
 .searchbar__suggestions li:hover {
-  background: var(--bg-elev);
+  background: var(--bg-elev-2);
   color: var(--text);
 }
 

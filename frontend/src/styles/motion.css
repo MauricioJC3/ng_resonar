@@ -15,6 +15,11 @@
   ::view-transition-new(*) {
     animation: none !important;
   }
+
+  /* Resonance rings are pure decoration — drop them entirely. */
+  .player__rings {
+    display: none !important;
+  }
 }
 
 @keyframes eq {
@@ -47,6 +52,19 @@
 @keyframes sheet-up {
   from {
     transform: translateY(100%);
+  }
+}
+
+/* "Resonance rings" behind the full-screen artwork — staggered scale + fade.
+   Fully suppressed by the reduced-motion guard above. */
+@keyframes ring {
+  from {
+    transform: scale(0.72);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
   }
 }
 

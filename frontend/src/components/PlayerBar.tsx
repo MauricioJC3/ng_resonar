@@ -351,6 +351,14 @@ export default function PlayerBar() {
           </button>
         )}
 
+        {expanded && current && (
+          <span className="player__rings" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        )}
+
         <button
           type="button"
           className="player__meta"

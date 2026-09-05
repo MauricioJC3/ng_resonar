@@ -17,12 +17,18 @@
   flex-shrink: 0;
 }
 
+.theme-toggle[aria-checked="true"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-wash);
+}
+
 .card {
   background: var(--bg-elev);
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 18px;
+  padding: 22px;
+  margin-bottom: 16px;
 }
 
 .card__head {
@@ -35,7 +41,10 @@
 
 .card__head h2 {
   margin: 0;
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .card__sub {
@@ -66,4 +75,5 @@
 
 .field input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
 }

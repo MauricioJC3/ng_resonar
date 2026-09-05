@@ -12,7 +12,7 @@
   flex-direction: column;
   background: var(--bg-elev);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: var(--shadow);
   overflow: hidden;
   animation: sheet-in var(--dur-slow) var(--ease-emphasized);
@@ -84,7 +84,7 @@
 }
 
 .lyrics__line.is-active {
-  color: var(--text);
+  color: var(--accent);
   font-weight: 600;
   transform: scale(1.02);
 }
@@ -117,8 +117,27 @@
     transform: none;
     width: 100%;
     max-height: 82vh;
-    border-radius: 18px 18px 0 0;
+    border-radius: 16px 16px 0 0;
     animation: sheet-up var(--dur-slow) var(--ease-emphasized);
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Grip handle */
+  .lyrics::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--text-faint);
+    opacity: 0.5;
+    z-index: 1;
+  }
+
+  .lyrics__head {
+    padding-top: 22px;
   }
 }

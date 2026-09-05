@@ -11,8 +11,9 @@
 }
 
 .chip--on {
-  color: var(--accent-2);
-  border-color: color-mix(in srgb, var(--accent-2) 45%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-wash);
 }
 
 .watch__skip {

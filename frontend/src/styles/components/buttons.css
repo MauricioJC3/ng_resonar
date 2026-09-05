@@ -24,14 +24,25 @@
 }
 
 .btn--accent {
-  background: linear-gradient(120deg, var(--accent-soft), var(--accent));
+  background: var(--accent);
   border-color: transparent;
   color: var(--on-media);
 }
 
+.btn--accent:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, black);
+  border-color: transparent;
+}
+
 .btn--ghost {
   background: transparent;
+  border-color: transparent;
   color: var(--text-dim);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  color: var(--text);
+  border-color: transparent;
 }
 
 .segmented {
@@ -56,8 +67,8 @@
 }
 
 .segmented button.is-on {
-  background: var(--bg-elev-2);
-  color: var(--text);
+  background: var(--accent-wash);
+  color: var(--accent);
 }
 
 .savebox {
@@ -100,8 +111,8 @@
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
+  border: 2px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color: var(--accent);
   display: inline-block;
   animation: spin 0.7s linear infinite;
   vertical-align: -2px;
