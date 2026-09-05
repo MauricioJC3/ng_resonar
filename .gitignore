@@ -7,3 +7,6 @@ __pycache__/
 config/cookies.txt
 media/
 data/
+
+# Tooling cache (skill registry)
+.atl/
