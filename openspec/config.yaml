@@ -1,0 +1,85 @@
+# openspec/config.yaml — SDD configuration for ng_resonar
+schema: spec-driven
+
+persistence: openspec   # Engram MCP unavailable at init; all SDD state is file-based
+
+context: |
+  Resonar: self-hosted ad-free music + YouTube player, single-user.
+  Frontend: React 18 + Vite 6 + TypeScript 5.6 (strict) + Plyr 3.7. NO Angular
+  despite the `ng_` folder name. Hand-written src/styles.css (~1700 lines, CSS
+  custom properties, BEM-ish, dark-only). State: custom useSyncExternalStore
+  stores + one useReducer context (state/player.tsx). localStorage (resonar:*).
+  PWA (manifest + sw.js + MediaSession).
+  Backend: FastAPI 0.115 + Python 3.12, ytmusicapi + yt-dlp + ffmpeg, Redis
+  stream-URL cache. routers/ (thin HTTP) -> services/ (domain). Persistence is
+  JSON files under ./data (atomic tmp+os.replace, threading.Lock). Env-only
+  config via pydantic-settings. All Dockerized (redis + backend + nginx).
+  New stateful features (playback history, recommendations) go in the backend
+  as new routers+services following services/playlists.py, persisted to
+  ./data/history.json, exposed under /api.
+
+strict_tdd: false   # no-runner fallback: no test command in frontend/ or backend/, no workspace-level test command
+
+projects:
+  - path: frontend/
+    stack: React 18 + Vite 6 + TypeScript 5.6 (strict)
+    test_command: ""
+    test_framework: ""
+    test_layers: { unit: false, integration: false, e2e: false }
+    coverage_command: ""
+    lint_command: ""
+    typecheck_command: ""        # tsc --noEmit works but no npm script defined
+    format_command: ""
+  - path: backend/
+    stack: FastAPI + Python 3.12 (requirements.txt, no pyproject.toml)
+    test_command: ""
+    test_framework: ""
+    test_layers: { unit: false, integration: false, e2e: false }
+    coverage_command: ""
+    lint_command: ""
+    typecheck_command: ""
+    format_command: ""
+
+testing:
+  strict_tdd: false
+  runner: none
+  reason: >
+    No test runner configured in either project. frontend/package.json exposes
+    only dev/build/preview. backend has no pyproject.toml / pytest.ini /
+    conftest.py / test deps. No workspace-level command covers all projects,
+    so strict_tdd falls closed to false. sdd-apply / sdd-verify run in
+    Standard Mode. A change needing tests must also introduce the tooling
+    (Vitest + React Testing Library for frontend; pytest + FastAPI TestClient
+    for backend).
+
+rules:
+  proposal:
+    - Include a rollback plan for risky changes.
+    - State explicitly which side owns any new persisted state (backend JSON file vs localStorage).
+  specs:
+    - Use Given/When/Then for scenarios.
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY).
+  design:
+    - Document architecture decisions with rationale.
+    - Include sequence diagrams for cross-service flows (client -> /api -> service -> yt-dlp/Redis/JSON).
+    - Reuse the services/playlists.py file-persistence pattern for new JSON-backed state.
+  tasks:
+    - Group by phase, use hierarchical numbering.
+    - Keep tasks completable in one session.
+    - Keep backend router changes thin; put logic in services/.
+  apply:
+    guidelines:
+      - Follow existing code patterns (thin routers, module-level service functions, atomic JSON writes).
+      - Frontend styling changes go in src/styles.css using existing :root custom properties.
+      - New API calls go through src/api.ts getJSON/send helpers; shared types in src/types.ts.
+      - Wrap localStorage access in try/catch.
+      - Register new routers in backend/app/main.py and seed files from the lifespan handler.
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""          # project rule: never build after changes
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas.
+    - Keep PWA assets (manifest.webmanifest, sw.js) in sync when client theming/icons change.
