@@ -202,7 +202,7 @@ export default function WatchView({
   return (
     <div className="view watch">
       <button className="watch__back" onClick={onClose}>
-        <Icon name="back" size={16} /> Volver
+        <Icon name="back" size={16} /> Volver a videos
       </button>
 
       <div className="watch__stage">
@@ -286,14 +286,13 @@ export default function WatchView({
       </div>
 
       <p className="watch__note">
-        La vista rápida es 360–720p. «Guardar en HD» descarga y une video+audio
-        en el servidor para verlo en alta calidad y volver a verlo cuando
-        quieras.
+        La vista rápida es 360–720p. «Guardar en HD» une video + audio en el
+        servidor y lo deja re-reproducible en alta calidad.
       </p>
 
       {related.length > 0 && (
         <>
-          <h2 className="watch__subhead">Relacionados</h2>
+          <h2 className="watch__subhead">A continuación</h2>
           <div className="videogrid videogrid--compact">
             {related.slice(0, 12).map((v) => (
               <VideoCard key={v.id} video={v} onClick={() => onWatch(v)} />
