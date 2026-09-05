@@ -11,6 +11,7 @@ import {
   scrobbleSubmit,
   streamUrl,
 } from "../api";
+import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { usePlayer } from "../state/player";
 import { claimPlayback, isVideoActive, onPlaybackClaim } from "../state/mediabus";
 import { registerSeeker, setNowPlaying } from "../state/nowPlaying";
@@ -398,6 +399,26 @@ export default function PlayerBar() {
         </div>
 
         <div className="player__actions">
+          <button
+            className={
+              "player__toggle" +
+              (current && isSaved(current.id, library) ? " is-on" : "")
+            }
+            onClick={() => current && toggleLibrary(current)}
+            disabled={!current}
+            title={
+              current && isSaved(current.id, library)
+                ? "Quitar de favoritos"
+                : "Añadir a favoritos"
+            }
+            aria-label="Favorito"
+          >
+            <Icon
+              name="heart"
+              size={16}
+              filled={!!current && isSaved(current.id, library)}
+            />
+          </button>
           <button
             className={"player__toggle" + (leveled ? " is-on" : "")}
             onClick={toggleLevel}

@@ -1,3 +1,4 @@
+import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { usePlayer } from "../state/player";
 import Icon from "./Icon";
 
@@ -9,6 +10,7 @@ export default function QueuePanel({
   onClose: () => void;
 }) {
   const { queue, index, jumpTo, removeAt, move } = usePlayer();
+  const library = useLibrary();
 
   if (!open) return null;
 
@@ -39,6 +41,26 @@ export default function QueuePanel({
                 </span>
               </button>
               <div className="qrow__ctl">
+                <button
+                  className={isSaved(track.id, library) ? "is-on" : ""}
+                  onClick={() => toggleLibrary(track)}
+                  aria-label={
+                    isSaved(track.id, library)
+                      ? "Quitar de favoritos"
+                      : "Añadir a favoritos"
+                  }
+                  title={
+                    isSaved(track.id, library)
+                      ? "Quitar de favoritos"
+                      : "Añadir a favoritos"
+                  }
+                >
+                  <Icon
+                    name="heart"
+                    size={13}
+                    filled={isSaved(track.id, library)}
+                  />
+                </button>
                 <button
                   disabled={i === 0}
                   onClick={() => move(i, i - 1)}

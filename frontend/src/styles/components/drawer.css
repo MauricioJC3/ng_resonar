@@ -145,6 +145,10 @@
   background: var(--bg-elev);
 }
 
+.qrow__ctl button.is-on {
+  color: var(--accent);
+}
+
 .qrow__ctl button:disabled {
   opacity: 0.25;
   cursor: default;
