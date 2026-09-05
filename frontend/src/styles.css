@@ -1,28 +1,157 @@
-:root {
-  --bg: #0b0910;
-  --bg-elev: #14111c;
-  --bg-elev-2: #1d1830;
-  --line: #2a2440;
-  --line-soft: #201b30;
-  --text: #f0edf7;
-  --text-dim: #9b93b4;
-  --text-faint: #6f6788;
-  --accent: #8b5cf6;
-  --accent-soft: #a78bfa;
-  --accent-2: #22d3ee;
-  --danger: #f87171;
-  --radius: 14px;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+/* ===================================================================
+   DESIGN TOKENS - "cool & serene"
+   Block 1  : bare :root            = LIGHT set + theme-invariant tokens
+   Block 2  : @media (prefers-color-scheme: dark) :root:not([data-theme="light"])
+   Block 3a : :root[data-theme="dark"]   (verbatim copy of Block 2 body)
+   Block 3b : :root[data-theme="light"]  (re-asserts the light set)
+   =================================================================== */
 
+:root {
+  color-scheme: light;
+
+  /* ---- LIGHT surface / line / text / accent set (approved mockup) ---- */
+  --bg: #f1f4f3;
+  --bg-elev: #fbfdfc;
+  --bg-elev-2: #e8eeec;
+  --line: #d7e0dd;
+  --line-soft: #e4ebe9;
+  --text: #1b2422;
+  --text-dim: #55635f;
+  --text-faint: #85938f;
+  --accent: #3e7a6e;
+  --accent-soft: #5e9a8c;
+  --accent-wash: rgba(62, 122, 110, 0.1);
+  --accent-2: #5a97a6;
+  --danger: #b4674f;
+  --shadow:
+    0 1px 2px rgba(30, 50, 45, 0.06),
+    0 18px 40px -14px rgba(30, 50, 45, 0.18);
+
+  /* ---- theme-invariant tokens ---- */
+  --radius: 14px;
+  --on-media: #f4f7f6;
+  --stage-bg: #000000;
+  --scrim: rgba(0, 0, 0, 0.5);
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-ui: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ---- Plyr, LIGHT ---- */
   --plyr-color-main: var(--accent);
   --plyr-audio-controls-background: transparent;
   --plyr-audio-control-color: var(--text-dim);
   --plyr-audio-control-color-hover: var(--text);
+  --plyr-video-control-color: var(--on-media);
+  --plyr-video-control-color-hover: #f8faf9;
+  --plyr-video-controls-background: linear-gradient(
+    transparent,
+    rgba(8, 12, 12, 0.55)
+  );
   --plyr-menu-background: var(--bg-elev-2);
   --plyr-menu-color: var(--text-dim);
   --plyr-range-track-height: 5px;
   --plyr-range-thumb-height: 13px;
   --plyr-font-family: inherit;
+}
+
+/* Block 2 - OS reports dark AND the user has not forced light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #0e1414;
+    --bg-elev: #141b1a;
+    --bg-elev-2: #1b2523;
+    --line: #2a3633;
+    --line-soft: #212c2a;
+    --text: #e6edeb;
+    --text-dim: #93a5a1;
+    --text-faint: #677975;
+    --accent: #6da89b;
+    --accent-soft: #8fc3b7;
+    --accent-wash: rgba(109, 168, 155, 0.12);
+    --accent-2: #7fb6c4;
+    --danger: #d98c7a;
+    --shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 20px 48px -16px rgba(0, 0, 0, 0.6);
+
+    --plyr-color-main: var(--accent);
+    --plyr-audio-control-color: var(--text-dim);
+    --plyr-audio-control-color-hover: var(--text);
+    --plyr-video-control-color: var(--on-media);
+    --plyr-video-control-color-hover: #f8faf9;
+    --plyr-menu-background: var(--bg-elev-2);
+    --plyr-menu-color: var(--text-dim);
+  }
+}
+
+/* Block 3a - DARK SET - keep in sync with @media block */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e1414;
+  --bg-elev: #141b1a;
+  --bg-elev-2: #1b2523;
+  --line: #2a3633;
+  --line-soft: #212c2a;
+  --text: #e6edeb;
+  --text-dim: #93a5a1;
+  --text-faint: #677975;
+  --accent: #6da89b;
+  --accent-soft: #8fc3b7;
+  --accent-wash: rgba(109, 168, 155, 0.12);
+  --accent-2: #7fb6c4;
+  --danger: #d98c7a;
+  --shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 20px 48px -16px rgba(0, 0, 0, 0.6);
+
+  --plyr-color-main: var(--accent);
+  --plyr-audio-control-color: var(--text-dim);
+  --plyr-audio-control-color-hover: var(--text);
+  --plyr-video-control-color: var(--on-media);
+  --plyr-video-control-color-hover: #f8faf9;
+  --plyr-menu-background: var(--bg-elev-2);
+  --plyr-menu-color: var(--text-dim);
+}
+
+/* Block 3b - an explicit light choice beats a dark OS */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f1f4f3;
+  --bg-elev: #fbfdfc;
+  --bg-elev-2: #e8eeec;
+  --line: #d7e0dd;
+  --line-soft: #e4ebe9;
+  --text: #1b2422;
+  --text-dim: #55635f;
+  --text-faint: #85938f;
+  --accent: #3e7a6e;
+  --accent-soft: #5e9a8c;
+  --accent-wash: rgba(62, 122, 110, 0.1);
+  --accent-2: #5a97a6;
+  --danger: #b4674f;
+  --shadow:
+    0 1px 2px rgba(30, 50, 45, 0.06),
+    0 18px 40px -14px rgba(30, 50, 45, 0.18);
+
+  --plyr-color-main: var(--accent);
+  --plyr-audio-control-color: var(--text-dim);
+  --plyr-audio-control-color-hover: var(--text);
+  --plyr-video-control-color: var(--on-media);
+  --plyr-video-control-color-hover: #f8faf9;
+  --plyr-menu-background: var(--bg-elev-2);
+  --plyr-menu-color: var(--text-dim);
 }
 
 * {
@@ -39,8 +168,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -53,6 +181,23 @@ button {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+:where(button, a, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Motion is governed solely by this guard, never by the theme. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -102,7 +247,9 @@ a {
 
 .view__title {
   margin: 0 0 22px;
+  font-family: var(--font-display);
   font-size: 27px;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 
@@ -129,9 +276,10 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   padding-left: 10px;
 }
 
@@ -430,8 +578,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  background: var(--scrim);
+  color: var(--on-media);
   opacity: 0;
   transition: opacity 0.14s;
 }
@@ -609,8 +757,8 @@ a {
   position: absolute;
   right: 6px;
   bottom: 6px;
-  background: rgba(0, 0, 0, 0.82);
-  color: #fff;
+  background: color-mix(in srgb, var(--stage-bg) 82%, transparent);
+  color: var(--on-media);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   padding: 1px 6px;
@@ -623,11 +771,11 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--on-media);
   background: radial-gradient(
     circle at center,
-    rgba(0, 0, 0, 0.45),
-    rgba(0, 0, 0, 0.15)
+    color-mix(in srgb, var(--stage-bg) 45%, transparent),
+    color-mix(in srgb, var(--stage-bg) 15%, transparent)
   );
   opacity: 0;
   transition: opacity 0.16s;
@@ -694,7 +842,7 @@ a {
   max-width: 980px;
   border-radius: 16px;
   overflow: hidden;
-  background: #000;
+  background: var(--stage-bg);
   box-shadow: var(--shadow);
 }
 
@@ -722,7 +870,9 @@ a {
 }
 
 .watch__title {
-  font-size: 21px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
   margin: 20px 0 4px;
   max-width: 980px;
   line-height: 1.3;
@@ -772,9 +922,9 @@ a {
 }
 
 .btn--accent {
-  background: linear-gradient(120deg, var(--accent), #6d28d9);
+  background: linear-gradient(120deg, var(--accent-soft), var(--accent));
   border-color: transparent;
-  color: #fff;
+  color: var(--on-media);
 }
 
 .btn--ghost {
@@ -831,6 +981,7 @@ a {
   align-items: center;
   font-size: 12px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   padding: 5px 10px;
   border-radius: 999px;
@@ -914,8 +1065,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.35);
+  color: var(--on-media);
+  background: var(--scrim);
   opacity: 0;
   transition: opacity 0.14s;
 }
@@ -928,9 +1079,10 @@ a {
   position: absolute;
   right: 5px;
   bottom: 5px;
-  background: rgba(0, 0, 0, 0.82);
-  color: #fff;
+  background: color-mix(in srgb, var(--stage-bg) 82%, transparent);
+  color: var(--on-media);
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
   padding: 1px 5px;
   border-radius: 4px;
 }
@@ -1105,7 +1257,7 @@ a {
   padding: 0 4px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-media);
   font-size: 10px;
   font-weight: 700;
   display: flex;
@@ -1118,7 +1270,7 @@ a {
 .drawer__scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   z-index: 40;
 }
 
@@ -1133,7 +1285,7 @@ a {
   border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+  box-shadow: -20px 0 60px var(--scrim);
   animation: drawer-in 0.18s ease-out;
 }
 
@@ -1298,8 +1450,8 @@ a {
   font-weight: 700;
   padding: 6px 10px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
+  background: var(--scrim);
+  color: var(--on-media);
   animation: drawer-in 0.15s ease-out;
 }
 
@@ -1389,6 +1541,7 @@ a {
 
 .plcard__count {
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
   color: var(--text-dim);
 }
 
@@ -1424,7 +1577,9 @@ a {
 
 .pldetail__meta h1 {
   margin: 0 0 4px;
+  font-family: var(--font-display);
   font-size: 30px;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -1552,6 +1707,19 @@ a {
 
 .settings {
   max-width: 640px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: color var(--dur-base) var(--ease-standard),
+    border-color var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard);
+}
+
+.theme-toggle svg {
+  flex-shrink: 0;
 }
 
 .card {

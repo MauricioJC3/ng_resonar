@@ -113,6 +113,29 @@ const PATHS: Record<string, ReactElement> = {
       <path d="M6 6l1 14h10l1-14" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
+      <path d="m4.9 4.9 1.4 1.4" />
+      <path d="m17.7 17.7 1.4 1.4" />
+      <path d="M2 12h2" />
+      <path d="M20 12h2" />
+      <path d="m4.9 19.1 1.4-1.4" />
+      <path d="m17.7 6.3 1.4-1.4" />
+    </>
+  ),
+  moon: (
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+  ),
+  home: (
+    <>
+      <path d="m3 10.5 9-7.5 9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+      <path d="M9.5 21v-6h5v6" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />

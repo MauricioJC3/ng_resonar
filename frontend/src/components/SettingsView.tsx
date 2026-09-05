@@ -2,6 +2,30 @@ import { useState } from "react";
 
 import { lastfmAuthUrl } from "../api";
 import { refreshSettings, saveSettings, useSettings } from "../state/settings";
+import Icon from "./Icon";
+
+type Theme = "light" | "dark";
+
+function currentTheme(): Theme {
+  if (typeof document === "undefined") return "dark";
+  const forced = document.documentElement.dataset.theme;
+  if (forced === "light" || forced === "dark") return forced;
+  // No explicit choice yet — reflect what the system (and the CSS) is showing.
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function applyTheme(next: Theme) {
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem("resonar:theme", next);
+  } catch {
+    /* private mode / storage disabled — theme still applies for this session */
+  }
+  const meta = document.querySelector('meta[name="theme-color"]:not([media])');
+  if (meta) meta.setAttribute("content", next === "light" ? "#F1F4F3" : "#0E1414");
+}
 
 export default function SettingsView() {
   const s = useSettings();
@@ -9,6 +33,13 @@ export default function SettingsView() {
   const [lfKey, setLfKey] = useState("");
   const [lfSecret, setLfSecret] = useState("");
   const [msg, setMsg] = useState("");
+  const [theme, setTheme] = useState<Theme>(currentTheme);
+
+  function toggleTheme() {
+    const next: Theme = theme === "light" ? "dark" : "light";
+    applyTheme(next);
+    setTheme(next);
+  }
 
   if (!s) {
     return (
@@ -45,6 +76,31 @@ export default function SettingsView() {
   return (
     <div className="view settings">
       <h1 className="view__title">Ajustes</h1>
+
+      <section className="card">
+        <div className="card__head">
+          <h2>Tema</h2>
+          <button
+            type="button"
+            className="chip theme-toggle"
+            role="switch"
+            aria-checked={theme === "light"}
+            aria-label={
+              theme === "light"
+                ? "Cambiar al tema oscuro"
+                : "Cambiar al tema claro"
+            }
+            onClick={toggleTheme}
+          >
+            <Icon name={theme === "light" ? "sun" : "moon"} size={15} />
+            {theme === "light" ? "Claro" : "Oscuro"}
+          </button>
+        </div>
+        <p className="card__sub">
+          Se recuerda tu elección y se aplica antes de pintar la página. Sin una
+          elección explícita se sigue el tema del sistema.
+        </p>
+      </section>
 
       <section className="card">
         <div className="card__head">

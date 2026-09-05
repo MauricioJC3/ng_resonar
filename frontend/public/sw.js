@@ -1,7 +1,7 @@
 /* Minimal service worker: makes Resonar installable and lets the app shell
    load without network. It never caches /api/ (streams, search, scrobbles). */
 
-const CACHE = "resonar-shell-v1";
+const CACHE = "resonar-shell-v2";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png"];
 
 self.addEventListener("install", (event) => {

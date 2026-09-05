@@ -57,7 +57,7 @@ async def lastfm_callback(token: str = Query(...)):
         msg = f"No se pudo conectar con Last.fm: {exc}"
     return HTMLResponse(
         f"<!doctype html><meta charset=utf-8>"
-        f"<body style='font-family:system-ui;background:#0b0910;color:#f0edf7;"
+        f"<body style='font-family:system-ui;background:#0E1414;color:#E6EDEB;"
         f"display:grid;place-items:center;height:100vh;margin:0'>"
         f"<p>{msg}</p>"
     )
