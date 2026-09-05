@@ -33,10 +33,30 @@ def _extract_video_id(url: str) -> str | None:
     return m.group(1) if m else None
 
 
-def _dedupe(tracks: list[dict]) -> list[dict]:
-    """Drop repeats. Exact by videoId, then a softer pass by
-    (title, first-artist) lowercased — YouTube Mixes love to serve the same
-    song as "… (Remaster)" / "… (Live)" / a Topic re-upload."""
+_QUALIFIER_RE = re.compile(
+    r"\s*[\(\[][^\)\]]*[\)\]]"  # (...) / [...]
+    r"|\s*[-–—]\s*(?:official|lyric|topic|audio|video|remaster(?:ed)?|"
+    r"\d{4}\s*remaster|hd|hq|live|visualizer).*$",
+    re.IGNORECASE,
+)
+
+
+def _norm_title(title: str) -> str:
+    """Collapse a title to a comparison key: lowercase, drop
+    parenthetical/qualifier tails, strip apostrophes and punctuation, squeeze
+    whitespace. 'I Know It's Over', 'I Know It’s Over', 'I Know Its Over
+    (2011 Remaster)' all map to 'i know its over'."""
+    t = title.lower().replace("’", "'").replace("`", "'")
+    t = _QUALIFIER_RE.sub("", t)
+    t = t.replace("'", "")
+    t = re.sub(r"[^a-z0-9]+", " ", t).strip()
+    return t
+
+
+def _dedupe(tracks: list[dict], aggressive: bool = False) -> list[dict]:
+    """Drop repeats. Always exact by videoId. When ``aggressive`` (Mix/radio
+    imports), also collapse the same song served as
+    '… (Remaster)' / '… (Live)' / a Topic re-upload / a different apostrophe."""
     out: list[dict] = []
     seen_ids: set[str] = set()
     seen_named: set[tuple[str, str]] = set()
@@ -44,15 +64,15 @@ def _dedupe(tracks: list[dict]) -> list[dict]:
         vid = t.get("id")
         if not vid or vid in seen_ids:
             continue
-        title = (t.get("title") or "").strip().lower()
-        artist = (t.get("artists") or [""])[0].strip().lower()
-        # strip trailing "(...)" / "[...]" qualifiers for the soft key only
-        base = re.sub(r"\s*[\(\[].*?[\)\]]\s*$", "", title).strip()
-        named_key = (base or title, artist)
-        if base and named_key in seen_named:
-            continue
+        if aggressive:
+            key = (
+                _norm_title(t.get("title") or ""),
+                (t.get("artists") or [""])[0].strip().lower(),
+            )
+            if key[0] and key in seen_named:
+                continue
+            seen_named.add(key)
         seen_ids.add(vid)
-        seen_named.add(named_key)
         out.append(t)
     return out
 
@@ -91,7 +111,7 @@ async def import_url(url: str, limit: int = 300) -> dict:
     eff_limit = min(limit, 50) if is_mix else limit
 
     def _finish(res: dict, fallback_title: str | None = None) -> dict:
-        tracks = _dedupe(res.get("tracks") or [])[:eff_limit]
+        tracks = _dedupe(res.get("tracks") or [], aggressive=is_mix)[:eff_limit]
         return {"title": res.get("title") or fallback_title, "tracks": tracks}
 
     if list_id:
@@ -117,6 +137,9 @@ async def import_url(url: str, limit: int = 300) -> dict:
     if seed:
         tracks = await ytmusic.related(seed, 50)
         if tracks:
-            return _finish({"tracks": tracks}, "Mix de YouTube")
+            return {
+                "title": "Mix de YouTube",
+                "tracks": _dedupe(tracks, aggressive=True)[:50],
+            }
 
     return {"title": None, "tracks": []}
