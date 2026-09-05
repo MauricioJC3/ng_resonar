@@ -39,7 +39,14 @@ async def create(body: CreateBody):
         if not name.strip():
             name = res.get("title") or "Playlist importada"
         if not tracks:
-            raise HTTPException(status_code=422, detail="no se encontraron pistas en esa URL")
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "No se pudieron extraer pistas de esa URL. Los 'Mix' y "
+                    "radios de YouTube a veces no se pueden importar; probá "
+                    "con una playlist normal (list=PL…) o un álbum."
+                ),
+            )
     return playlists.create(name, tracks)
 
 

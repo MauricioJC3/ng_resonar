@@ -25,6 +25,14 @@ def _extract_list_id(url: str) -> str | None:
     return None
 
 
+def _extract_video_id(url: str) -> str | None:
+    query = parse_qs(urlparse(url).query)
+    if query.get("v"):
+        return query["v"][0]
+    m = re.search(r"(?:youtu\.be/|/shorts/|/embed/|/watch/)([\w-]{11})", url)
+    return m.group(1) if m else None
+
+
 def _ytdlp_playlist_sync(url: str, limit: int) -> dict:
     opts = {**_base_opts(), "extract_flat": True, "playlistend": limit}
     with yt_dlp.YoutubeDL(opts) as ydl:
@@ -52,11 +60,29 @@ def _ytdlp_playlist_sync(url: str, limit: int) -> dict:
 
 async def import_url(url: str, limit: int = 300) -> dict:
     list_id = _extract_list_id(url)
+    seed = _extract_video_id(url)
+
     if list_id:
         try:
-            res = await ytmusic.playlist(list_id, limit)
+            res = await ytmusic.playlist(list_id, limit, seed_video_id=seed)
             if res.get("tracks"):
                 return res
         except Exception:  # noqa: BLE001 - fall back to yt-dlp
             pass
-    return await run_in_threadpool(_ytdlp_playlist_sync, url, limit)
+
+    try:
+        res = await run_in_threadpool(_ytdlp_playlist_sync, url, limit)
+        if res.get("tracks"):
+            return res
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Last resort: a URL that only carries a video id (a Mix with no usable
+    # list, e.g. ".../watch?v=X&list=RDX&start_radio=1") — import that track's
+    # radio as a one-off snapshot.
+    if seed:
+        tracks = await ytmusic.related(seed, min(limit, 50))
+        if tracks:
+            return {"title": "Mix de YouTube", "tracks": tracks}
+
+    return {"title": None, "tracks": []}

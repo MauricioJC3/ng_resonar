@@ -112,19 +112,61 @@ async def related(video_id: str, limit: int = 25) -> list[dict]:
     return await run_in_threadpool(_related_sync, video_id, limit)
 
 
-def _playlist_sync(list_id: str, limit: int) -> dict:
+def _watch_mix_sync(list_id: str, seed_video_id: str | None, limit: int) -> dict:
+    """YouTube / YT Music "Mix" and radio lists (``RD…``) are not static
+    playlists — resolve them through the watch/radio endpoint instead."""
+    yt = _yt()
+    seed = seed_video_id
+    if not seed:
+        for pre in ("RDAMVM", "RDEM", "RD"):
+            if list_id.startswith(pre) and len(list_id) - len(pre) == 11:
+                seed = list_id[len(pre):]
+                break
+
+    for kwargs in (
+        {"playlistId": list_id, "videoId": seed, "limit": limit},
+        {"videoId": seed, "radio": True, "limit": limit},
+        {"playlistId": list_id, "limit": limit},
+    ):
+        call = {k: v for k, v in kwargs.items() if v is not None}
+        if "playlistId" not in call and "videoId" not in call:
+            continue
+        try:
+            watch = yt.get_watch_playlist(**call)
+            tracks = [
+                _norm(t) for t in watch.get("tracks", []) if t.get("videoId")
+            ]
+            if tracks:
+                return {
+                    "title": watch.get("title") or "Mix de YouTube",
+                    "tracks": tracks,
+                }
+        except Exception:  # noqa: BLE001 - ytmusicapi internals are brittle
+            continue
+    return {"title": None, "tracks": []}
+
+
+def _playlist_sync(
+    list_id: str, limit: int, seed_video_id: str | None = None
+) -> dict:
     yt = _yt()
     if list_id.startswith("MPREb_"):  # album browseId
         alb = yt.get_album(list_id)
         tracks = [_norm(t) for t in alb.get("tracks", []) if t.get("videoId")]
         return {"title": alb.get("title"), "tracks": tracks}
+    if list_id.startswith("RD"):  # Mix / radio — not a static playlist
+        return _watch_mix_sync(list_id, seed_video_id, limit)
     pl = yt.get_playlist(list_id, limit=limit)
     tracks = [_norm(t) for t in pl.get("tracks", []) if t.get("videoId")]
     return {"title": pl.get("title"), "tracks": tracks}
 
 
-async def playlist(list_id: str, limit: int = 300) -> dict:
-    return await run_in_threadpool(_playlist_sync, list_id, limit)
+async def playlist(
+    list_id: str, limit: int = 300, seed_video_id: str | None = None
+) -> dict:
+    return await run_in_threadpool(
+        _playlist_sync, list_id, limit, seed_video_id
+    )
 
 
 def _home_sync() -> list[dict]:

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { getHistory, homeMusic, recommendations } from "../api";
 import type { HistoryEntry, Track } from "../types";
 import { usePlayer } from "../state/player";
-import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 
 // History entries carry videoId/title/artist/thumbnail; adapt to the Track shape
@@ -74,7 +73,7 @@ export default function HomeView() {
         <section className="home__section">
           <h2 className="view__subhead">Para ti</h2>
           <div className="hcards">
-            {forYou.map((track, i) => (
+            {forYou.slice(0, 12).map((track, i) => (
               <button
                 key={"fy" + track.id + i}
                 className="hcard"
@@ -90,9 +89,6 @@ export default function HomeView() {
                   {track.thumbnail && (
                     <img src={track.thumbnail} alt="" loading="lazy" />
                   )}
-                  <span className="hcard__play" aria-hidden="true">
-                    <Icon name="play" size={16} filled />
-                  </span>
                 </span>
                 <span className="hcard__title">{track.title}</span>
                 <span className="hcard__meta">{track.artists.join(", ")}</span>
