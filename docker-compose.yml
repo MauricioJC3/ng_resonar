@@ -1,6 +1,21 @@
 name: resonar
 
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: resonar
+      POSTGRES_PASSWORD: resonar
+      POSTGRES_DB: resonar
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resonar -d resonar"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -15,8 +30,17 @@ services:
     restart: unless-stopped
     environment:
       REDIS_URL: redis://redis:6379/0
-      CORS_ORIGINS: "*"
+      DATABASE_URL: postgresql+psycopg://resonar:resonar@db:5432/resonar
+      CORS_ORIGINS: ""
       STREAM_CACHE_TTL: "18000"
+      SESSION_COOKIE_NAME: __Host-resonar_session
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_IDLE_TTL: "43200"
+      SESSION_ABSOLUTE_TTL: "604800"
+      SESSION_REMEMBER_IDLE_TTL: "2592000"
+      SESSION_REMEMBER_ABSOLUTE_TTL: "7776000"
+      # Set a strong shared secret before first run to gate POST /api/auth/bootstrap.
+      # BOOTSTRAP_TOKEN: ""
       # Point this at a cookies.txt (Netscape format) if extraction starts
       # failing with "Sign in to confirm you're not a bot". Put the file in
       # ./config/ and uncomment:
@@ -28,6 +52,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      db:
+        condition: service_healthy
     expose:
       - "8000"
 
@@ -38,3 +64,6 @@ services:
       - "${PORT:-8080}:80"
     depends_on:
       - backend
+
+volumes:
+  db-data:

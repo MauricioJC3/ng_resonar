@@ -4,6 +4,10 @@ httpx==0.28.1
 ytmusicapi==1.10.2
 redis==5.2.1
 pydantic-settings==2.7.1
+SQLAlchemy==2.0.36
+alembic==1.14.0
+psycopg[binary]==3.2.3
+argon2-cffi==23.1.0
 # Unpinned on purpose: YouTube changes constantly and only a fresh yt-dlp keeps
 # extraction working. Rebuild the backend image periodically to pull the latest.
 yt-dlp
