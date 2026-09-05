@@ -1128,7 +1128,53 @@ scenario "WHEN the Plyr `play` event fires THEN recordPlay posts the video").
   10. Stop the backend, keep the frontend running, play a track → no console
       error, no UI error, playback continues (fire-and-forget `recordPlay`).
 
-## Next
+## Slice 6 — recommendations + related caching + "For you" UI
 
-`sdd-verify` for Slice 5, then `sdd-apply` for Slice 6 (recommendations +
-`related` caching + "For you" UI) — NOT started here.
+Tasks 6.1–6.9 done. 6.10 (router `TestClient` test), 6.11 (uvicorn+curl),
+6.12 (`npm run dev` visual) deferred — no backend venv / dev server in this
+environment. The Slice 6 sub-agent hit a session rate-limit mid-run; the
+orchestrator finished and verified the slice by inspection.
+
+**Backend**
+- `backend/app/services/recommend.py` (new) — pure `pick_seeds(entries, n=12)`
+  (alias `seeds_from_history`), `rank(results_by_seed, seed_order, exclude,
+  cap=30)` (primary: cross-seed frequency desc; secondary: earliest-seed
+  recency; dedupes within a seed; stable), `_related_cached(cache, id)` sharing
+  the `related:{id}` key, and `async recommend(cache, limit=30)`. Never raises:
+  empty history or empty ranking -> `ytmusic.home()`; every `related` call is
+  `asyncio.wait_for(..., 4.0)` and `except -> []`.
+- `backend/app/routers/recommendations.py` (new) — `APIRouter(tags=
+  ["recommendations"])`, `GET /recommendations?limit=` (1..50, default 30) ->
+  `{"results": [...]}`.
+- `backend/app/routers/search.py` — `/api/related/{id}` now checks
+  `related:{id}` (id-only key, TTL 3600s) before calling `ytmusic.related`,
+  and `cache.set`s a non-empty result. Response shape / error behaviour
+  unchanged.
+- `backend/app/main.py` — additive import + `include_router(recs_router.router,
+  prefix="/api")`.
+- `backend/tests/test_recommend.py` (new) — 8 pure-function tests for
+  `pick_seeds` + `rank`. `python3 -m py_compile` passes on all Slice 6 Python;
+  pytest not run (no venv).
+
+**Frontend**
+- `frontend/src/api.ts` — `recommendations(limit = 30)` (`.catch(() => [])`).
+- `frontend/src/components/SearchView.tsx` — two mount-time non-blocking
+  fetches (`recommendations()`, `getHistory(20)`); "Para ti" and "Reproducido
+  recientemente" sections render only on the empty/home state, only when
+  non-empty (no header, no gap otherwise), through the existing `TrackRow` +
+  `playList`. `historyToTrack()` adapts `HistoryEntry` -> `Track`
+  (`kind:"video"` rows enqueue as audio this cycle — deferred routing to
+  WatchView, noted).
+
+**Preservation** — existing endpoints unchanged except the additive
+`related:{id}` cache; no player / Plyr / MediaSession / history-service /
+`App.tsx` change; `recordPlay` (Slice 5) untouched.
+
+## Deferred across the change (need a dev environment)
+- 1.17 — regenerate the 4 PNG icons (`icon-192`, `icon-512`,
+  `icon-maskable-512`, `apple-touch-icon`) from the sage SVGs.
+- Manual `npm run dev` / uvicorn passes: 1.18, 2.9, 3.21, 4.12, 5.18,
+  6.11, 6.12.
+- Run the pytest suites (`cd backend && pip install -r requirements-dev.txt &&
+  pytest`).
+- 6.10 — `test_recommendations_router.py`.

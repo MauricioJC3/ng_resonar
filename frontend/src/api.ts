@@ -238,3 +238,11 @@ export function clearHistory(): Promise<void> {
     .then(() => undefined)
     .catch(() => undefined);
 }
+
+// ---- Recommendations ----
+
+export function recommendations(limit = 30): Promise<Track[]> {
+  return getJSON<{ results: Track[] }>(`/recommendations?limit=${limit}`)
+    .then((r) => r.results)
+    .catch(() => []);
+}

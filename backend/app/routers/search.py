@@ -37,7 +37,17 @@ async def suggest(q: str = Query(..., min_length=1)):
 
 @router.get("/related/{video_id}")
 async def related(video_id: str, limit: int = Query(25, ge=1, le=50)):
-    return {"results": await ytmusic.related(video_id, limit)}
+    cache = get_cache()
+    # Id-only key (ignores `limit`, accepted per design). Shared with the
+    # recommendation fan-out so both populate and read one entry.
+    key = f"related:{video_id}"
+    hit = await cache.get(key)
+    if hit is not None:
+        return {"results": hit[:limit]}
+    results = await ytmusic.related(video_id, limit)
+    if results:
+        await cache.set(key, results, 3600)
+    return {"results": results}
 
 
 @router.get("/home")

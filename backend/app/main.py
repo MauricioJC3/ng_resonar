@@ -12,6 +12,7 @@ from .routers import (
     history as history_router,
     lyrics,
     playlists as playlists_router,
+    recommendations as recs_router,
     search,
     settings as settings_router,
     sponsorblock,
@@ -62,6 +63,7 @@ app.include_router(sponsorblock.router, prefix="/api")
 app.include_router(lyrics.router, prefix="/api")
 app.include_router(playlists_router.router, prefix="/api")
 app.include_router(history_router.router, prefix="/api")
+app.include_router(recs_router.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 app.include_router(download.router, prefix="/api")
 
