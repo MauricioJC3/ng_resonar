@@ -857,3 +857,278 @@ element, API call, or component prop / data-flow was edited.
   confirm background audio, single `PlayerBar` mount, MediaSession, Plyr PiP,
   Web-Audio leveling, radio auto-extend, keyboard shortcuts, and scrobble still
   work after the restyle (no logic path was touched, so this is a sanity check).
+
+---
+
+# Slice 5 — Playback history: backend + client hooks (PR 5)
+
+Mode: **Standard** (`strict_tdd: false`, no test runner in the repo). Engram MCP
+down — progress persisted to this file only. No `npm run build` / uvicorn /
+docker run (brief + project rule). Scope: **Slice 5 only**; Slice 6
+(recommendations) was NOT started.
+
+## Status
+
+| Task | State |
+|------|-------|
+| 5.1–5.17, 5.19 | done (`[x]`) |
+| 5.18 | deferred — manual uvicorn + `curl` verification (no backend deps / venv in this environment; checklist below) |
+
+18/19 tasks complete.
+
+## What was done
+
+### Backend — `services/history.py` (5.1–5.7, NEW)
+
+Mirrors `services/playlists.py` verbatim in style: module-level functions (no
+class), `from __future__ import annotations`, `_FILE =
+os.path.join(settings.data_dir, "history.json")`, `_lock = threading.Lock()`,
+plus a pinned `CAP = 800`.
+
+- `ensure()` — `os.makedirs(settings.data_dir, exist_ok=True)`; seeds
+  `{"entries": []}` (`json.dump`) when the file is absent.
+- `_load()` — calls `ensure()`, then `try/except (OSError, json.JSONDecodeError)`
+  → `{"entries": []}`; also returns `{"entries": []}` when `data.get("entries")`
+  is not a `list` (shape guard, matching the spec's "tolerant").
+- `_save(data)` — atomic: writes `_FILE + ".tmp"` with
+  `json.dump(data, f, ensure_ascii=False)` then `os.replace(tmp, _FILE)`.
+- `add(entry)` — under `_lock`: `now = int(time.time())`; if
+  `entries and entries[-1].get("videoId") == entry["videoId"]` → bump
+  `entries[-1]["playedAt"] = now` and `entries[-1]["playCount"] += 1` (no
+  append); else append `{**entry, "playedAt": now, "playCount": 1}`. Then
+  `if len(entries) > CAP: del entries[: len(entries) - CAP]` (drop oldest).
+  Returns the stored entry dict.
+- `list_entries(limit=None)` — `list(reversed(_load()["entries"]))` (newest-first),
+  sliced to `limit` when truthy.
+- `clear()` — under `_lock`, `_save({"entries": []})`.
+
+Storage order: appended oldest-last in the file; `list_entries` reverses.
+
+### Backend — `routers/history.py` (5.8–5.9, NEW)
+
+Thin, `playlists.py` style. `router = APIRouter(tags=["history"])`, `async def`
+handlers, in-module Pydantic models with **camelCase** fields:
+
+- `HistoryEntry` (response/docs parity): `videoId: str`, `title: str`,
+  `artist: str | None = None`, `thumbnail: str | None = None`,
+  `kind: Literal["song", "video"] = "song"`, `playedAt: int`,
+  `playCount: int = 1`, `source: str | None = None`.
+- `HistoryBody` (POST input, no `playedAt`/`playCount`):
+  `videoId: str = Field(min_length=1, max_length=64)`,
+  `title: str = Field(min_length=1, max_length=500)`,
+  `artist: str | None = Field(default=None, max_length=500)`,
+  `thumbnail: str | None = Field(default=None, max_length=1000)`,
+  `kind: Literal["song", "video"] = "song"`,
+  `source: str | None = Field(default=None, max_length=32)`.
+- `GET /history` — `limit: int = Query(100, ge=1, le=800)` →
+  `{"results": history.list_entries(limit)}` (newest-first).
+- `POST /history` — `body: HistoryBody` → `history.add(body.model_dump())`
+  (server stamps `playedAt`/`playCount` inside the service).
+- `DELETE /history` — `history.clear()` → `{"ok": True}`.
+
+The `Field(min_length=1)` makes an empty/missing `videoId` or `title` a **422**;
+`max_length` makes an oversized body a 422 (spec: "Invalid POST rejected with
+4xx" + "Oversized payload rejected"), and FastAPI validates before the handler
+runs so nothing is persisted.
+
+### Backend — `main.py` wiring (5.10)
+
+- Import block: added `history as history_router` to `from .routers import (...)`
+  and `history as history_service` to `from .services import (...)` (the
+  services import was reflowed to the multi-line paren form).
+- `lifespan()`: `history_service.ensure()` added directly after
+  `playlists_service.ensure()`.
+- `app.include_router(history_router.router, prefix="/api")` added directly after
+  the `playlists_router` include.
+- Slice 6's `recommendations` router was **not** added (out of scope).
+
+### `.gitignore` (5.11)
+
+No change needed — `.gitignore:9` already has a bare `data/` rule that ignores
+`data/history.json` exactly as it ignores `data/playlists.json` and the batch
+zips. Adding `data/history.json` explicitly would be redundant (brief §4:
+"nothing to do" when the `data/` rule covers it).
+
+### Frontend — `types.ts` (5.12)
+
+Added `HistoryEntry` interface above `SavedVideo`, matching the backend
+camelCase shape (`videoId`, `title`, `artist?: string | null`,
+`thumbnail?: string | null`, `kind: "song" | "video"`, `playedAt: number`,
+`playCount: number`, `source?: string | null`).
+
+### Frontend — `api.ts` (5.13)
+
+New `// ---- Playback history ----` section after `scrobbleSubmit`:
+
+- `recordPlay(item: Track | VideoItem, kind: "song" | "video", source?: string):
+  void` — fire-and-forget, modelled exactly on `scrobbleNowPlaying`:
+  `void fetch(\`${BASE}/history\`, { method: "POST", headers: {
+  "Content-Type": "application/json" }, body: JSON.stringify(body)
+  }).catch(() => {})`. Body mapping: song →
+  `{ videoId: (item as Track).id, title, artist: (item as Track).artists?.[0],
+  thumbnail: item.thumbnail, kind, source }`; video →
+  `{ videoId: (item as VideoItem).id, title, artist: (item as VideoItem).uploader,
+  thumbnail: item.thumbnail, kind, source }`.
+- `getHistory(limit = 20): Promise<HistoryEntry[]>` —
+  `getJSON<{ results: HistoryEntry[] }>(\`/history?limit=${limit}\`)
+  .then((r) => r.results).catch(() => [])`.
+- `clearHistory(): Promise<void>` — `fetch(\`${BASE}/history\`, { method:
+  "DELETE" }).then(() => undefined).catch(() => undefined)` (added per brief §7
+  "for later slices/UI"; maps the DELETE endpoint).
+- `HistoryEntry` added to the `import type { ... } from "./types"` list.
+
+### Frontend — `PlayerBar.tsx` (5.14)
+
+`recordPlay` added to the `../api` import list. **One line added** inside the
+existing `useEffect(..., [current])`, immediately after
+`scrobbledRef.current = false;` — unconditional, above the `scrobblingOn()`
+gate:
+
+```
+    scrobbledRef.current = false;
+    recordPlay(current, "song", "player");          // <-- added
+    if (scrobblingOn()) scrobbleNowPlaying(current);
+```
+
+Nothing else in `PlayerBar.tsx` changed — not the mount-once Plyr `useEffect`,
+not the `timeupdate`/`scrobbleSubmit` block, not MediaSession
+(`MediaMetadata` + `setActionHandler` + `setPositionState`), not radio
+auto-extend, not keyboard shortcuts, not Web-Audio leveling
+(`buildGraph`/`routeGraph`/`toggleLevel`), not the `expanded`/`popstate`
+full-screen logic.
+
+### Frontend — `WatchView.tsx` (5.15)
+
+`recordPlay` added to the `../api` import list. The Plyr `play` handler in the
+mount-once `useEffect` went from a one-liner to a block, `recordPlay` beside
+`claimPlayback`:
+
+```
+    player.on("play", () => {
+      claimPlayback("video");
+      recordPlay(video, "video", "watch");           // <-- added
+    });
+```
+
+Nothing else changed — not the `controls` array (still includes `"pip"` and
+`"fullscreen"`), not `settings`/`seekTime`/`keyboard`, not the source
+(quick-preview vs saved-HD) `useEffect`, not SponsorBlock fetch/auto-skip, not
+the save-HD flow, not the related-videos fetch. Plyr `play` fires on every
+play/resume; the backend consecutive-repeat dedupe absorbs resume-after-pause
+into `playCount++` on the same entry (matches the design snippet and the spec
+scenario "WHEN the Plyr `play` event fires THEN recordPlay posts the video").
+
+### pytest tooling (5.16, 5.17) — written, NOT run
+
+- `backend/requirements-dev.txt` — `-r requirements.txt` + `pytest==8.3.4`
+  (FastAPI `TestClient` needs `httpx`, already pinned in `requirements.txt`).
+- `backend/pytest.ini` — `pythonpath = .`, `testpaths = tests`.
+- `backend/tests/conftest.py` — autouse `tmp_history` fixture:
+  `monkeypatch.setattr(history.settings, "data_dir", str(tmp_path))` **and**
+  `monkeypatch.setattr(history, "_FILE", str(tmp_path / "history.json"))`
+  (`_FILE` is bound at import time, so both need patching); yields `tmp_path`.
+- `backend/tests/test_history_service.py` — `add` stamps `playedAt`/`playCount`;
+  consecutive-repeat dedupe → one entry, `playCount == 3`; A,B,A → two A
+  entries; `list_entries` newest-first + `limit`; `CAP` trim drops the oldest
+  (adds `CAP + 25`, asserts `len == CAP` and newest/oldest ids); `clear`
+  empties; entries survive a fresh `_load()`; `_load()` tolerates a corrupt
+  file then recovers on the next write.
+- `backend/tests/test_history_router.py` — builds a minimal `FastAPI()` with
+  only `history_router.router` mounted at `/api` (hermetic, no lifespan / no
+  network deps), `TestClient`: POST→GET happy path; newest-first + `limit`;
+  consecutive repeat → one entry `playCount == 2`; `DELETE` → `{"ok": true}`
+  then empty; missing `videoId` → 422 and not persisted; missing `title` → 422;
+  empty `videoId` → 422; oversized `title` → 422 and not persisted; entries
+  persist across a fresh `history._load()`.
+- **Not run**: this environment has no Python venv and `fastapi` / `pytest` are
+  not importable (`python3 -c "import fastapi"` → `ModuleNotFoundError`).
+  `python3 -m py_compile` passes on all 6 Python files. To run:
+  `cd backend && pip install -r requirements-dev.txt && pytest`
+  (or `pytest tests/test_history_service.py tests/test_history_router.py`).
+
+## Preservation check (Slice 5)
+
+| Point | Result | Proof |
+|-------|--------|-------|
+| `scrobbleNowPlaying` / `scrobbleSubmit` still fire from `PlayerBar` | **PASS** | `recordPlay(current, "song", "player")` is a **new line beside** `if (scrobblingOn()) scrobbleNowPlaying(current);` — neither scrobble call was moved, gated differently, or replaced. `scrobbleSubmit` in the `timeupdate` handler is byte-unchanged. |
+| Player lifecycle / Plyr / MediaSession / PiP / Web-Audio / radio / keyboard untouched | **PASS** | `PlayerBar.tsx` diff = 1 import addition + 1 statement inside `useEffect([current])`. `WatchView.tsx` diff = 1 import addition + `claimPlayback` one-liner expanded to a 3-line block with `recordPlay` alongside. No `controls` array, `<audio>`/`<video>` element, ref, or other `useEffect` changed. |
+| Playback unaffected when the backend is unreachable | **PASS** | `recordPlay` is `void fetch(...).catch(() => {})` — fire-and-forget, no `await`, promise rejection swallowed, return type `void`. Identical pattern to the shipped `scrobbleNowPlaying`. `getHistory`/`clearHistory` also `.catch` to a safe value. |
+| No existing backend router/service changed | **PASS** | Only additive `main.py` wiring (2 import entries, 1 `ensure()` call, 1 `include_router`). `services/playlists.py`, `routers/playlists.py`, every other router/service byte-unchanged. |
+| Slice 6 not started | **PASS** | No `services/recommend.py`, no `routers/recommendations.py`, no `recs_router` in `main.py`, no `recommendations()` in `api.ts`, no `SearchView.tsx` change, no `related:{id}` cache in `routers/search.py`. |
+
+## Endpoints added
+
+| Method | Path | Query | Body | Response |
+|--------|------|-------|------|----------|
+| `GET` | `/api/history` | `limit` 1..800 (default 100) | — | `{"results": HistoryEntry[]}` newest-first |
+| `POST` | `/api/history` | — | `HistoryBody` (camelCase, no `playedAt`/`playCount`) | stored `HistoryEntry` (server-stamped) |
+| `DELETE` | `/api/history` | — | — | `{"ok": true}` |
+
+## Deviations from design.md
+
+1. **`getHistory` name kept** (design + tasks.md 5.13 both say `getHistory`;
+   the orchestrator brief §7 said `listHistory`). Followed the artifacts.
+   Added `clearHistory()` as the brief additionally asked, mapping the DELETE
+   endpoint — forward-compatible, unused this slice.
+2. **Two test files** (`test_history_service.py` + `test_history_router.py`) per
+   tasks.md 5.16/5.17 and the Review Workload Forecast's focused test command,
+   rather than the single `test_history.py` in the brief prose summary.
+3. **Router test uses a minimal `FastAPI()` app** with only the history router
+   mounted, instead of importing `app.main:app`. Keeps the test hermetic (no
+   lifespan, no `httpx.AsyncClient`, no cache/ytmusic imports) and still
+   exercises the exact `include_router(..., prefix="/api")` wiring. The
+   "survives a restart" scenario is covered at the service layer
+   (`history._load()` re-read) since both share the fixture-pinned file.
+4. **`_load()` shape guard** (`isinstance(data.get("entries"), list)`) added
+   beyond `playlists.py`'s plain `json.load` — the design's `_load()` snippet
+   includes it and the spec says "returns `{"entries": []}` when the shape is
+   wrong".
+
+## Files changed (Slice 5)
+
+| File | Action | What |
+|------|--------|------|
+| `backend/app/services/history.py` | Created | JSON-file history service (`playlists.py` pattern), `CAP = 800`, dedupe + stamp + cap |
+| `backend/app/routers/history.py` | Created | `GET/POST/DELETE /api/history` + `HistoryEntry` / `HistoryBody` (camelCase, `Field` constraints) |
+| `backend/app/main.py` | Modified | import `history` router + service; `history_service.ensure()` in lifespan; `include_router(history_router.router, prefix="/api")` |
+| `backend/requirements-dev.txt` | Created | `-r requirements.txt` + `pytest` |
+| `backend/pytest.ini` | Created | `pythonpath = .`, `testpaths = tests` |
+| `backend/tests/conftest.py` | Created | autouse `tmp_history` fixture (patches `settings.data_dir` + `history._FILE`) |
+| `backend/tests/test_history_service.py` | Created | service unit tests (dedupe / stamp / cap / order / limit / clear / reload / corrupt-file) |
+| `backend/tests/test_history_router.py` | Created | `TestClient` integration tests (happy path / 422s / not-persisted / reload) |
+| `frontend/src/types.ts` | Modified | `HistoryEntry` interface |
+| `frontend/src/api.ts` | Modified | `recordPlay`, `getHistory`, `clearHistory` + `HistoryEntry` type import |
+| `frontend/src/components/PlayerBar.tsx` | Modified | `recordPlay` import + 1 line in `useEffect([current])` beside `scrobbleNowPlaying` |
+| `frontend/src/components/WatchView.tsx` | Modified | `recordPlay` import + `recordPlay(video, "video", "watch")` in the Plyr `play` handler beside `claimPlayback` |
+| `openspec/changes/redesign-and-history/tasks.md` | Modified | Slice 5 checkboxes 5.1–5.17 + 5.19 `[x]`, 5.18 deferred |
+
+## Not done / deferred
+
+- **5.18** — manual uvicorn + `curl` verification (no backend deps / venv in
+  this environment). Reviewer checklist:
+  1. `cd backend && pip install -r requirements-dev.txt && pytest` — all green.
+  2. `uvicorn app.main:app` (with `DATA_DIR=./data`). Confirm `./data/history.json`
+     is created containing `{"entries": []}` on startup.
+  3. `curl -XPOST localhost:8000/api/history -H 'content-type: application/json'
+     -d '{"videoId":"abc","title":"Song","kind":"song","source":"player"}'` →
+     200, returns the entry with a server `playedAt` and `playCount:1`.
+  4. `curl -XPOST ... -d '{"title":"no id"}'` → 422; `curl -XPOST ...
+     -d '{"videoId":"abc","title":"'"$(python3 -c 'print("x"*5000)')"'"}'` → 422.
+     `GET /api/history` still empty.
+  5. Play a song in the UI, then open a video — inspect `./data/history.json`:
+     one `kind:"song" source:"player"` entry and one `kind:"video"
+     source:"watch"` entry.
+  6. Play the same song twice with nothing in between → one entry, `playCount:2`,
+     `playedAt` advanced. Play A, B, A → two separate A entries.
+  7. `curl -XDELETE localhost:8000/api/history` → `{"ok":true}`;
+     `GET /api/history` → `{"results":[]}`.
+  8. Restart uvicorn → `GET /api/history` still returns the entries written
+     before the restart (persistence).
+  9. `GET /api/history?limit=10` → at most 10, newest-first.
+  10. Stop the backend, keep the frontend running, play a track → no console
+      error, no UI error, playback continues (fire-and-forget `recordPlay`).
+
+## Next
+
+`sdd-verify` for Slice 5, then `sdd-apply` for Slice 6 (recommendations +
+`related` caching + "For you" UI) — NOT started here.

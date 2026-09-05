@@ -105,25 +105,25 @@ className / component-CSS only - no logic change in any `.tsx`.
 
 ## Slice 5: Playback history - backend + client hooks (PR 5)
 
-- [ ] 5.1 Create `backend/app/services/history.py` mirroring `services/playlists.py`: `_FILE = os.path.join(settings.data_dir, "history.json")`, `_lock = threading.Lock()`, `CAP = 800`.
-- [ ] 5.2 Implement `ensure()` - `os.makedirs(settings.data_dir, exist_ok=True)`, seed `{"entries": []}` when the file is absent.
-- [ ] 5.3 Implement `_load()` - tolerant of `OSError` / `json.JSONDecodeError`, returns `{"entries": []}` when the shape is wrong.
-- [ ] 5.4 Implement `_save(data)` - atomic write to `_FILE + ".tmp"` then `os.replace`, `json.dump(..., ensure_ascii=False)`.
-- [ ] 5.5 Implement `add(entry)` - under `_lock`: if the last entry has the same `videoId`, bump `playedAt = now` and `playCount += 1`; else append `{**entry, "playedAt": now, "playCount": 1}`; drop oldest while `len(entries) > CAP`; return the stored entry.
-- [ ] 5.6 Implement `list_entries(limit=None)` - newest-first (`reversed`), slice to `limit` when given.
-- [ ] 5.7 Implement `clear()` - under `_lock`, `_save({"entries": []})`.
-- [ ] 5.8 Create `backend/app/routers/history.py` (thin, `playlists.py` style): `router = APIRouter(tags=["history"])`, `HistoryEntry` response model, `HistoryBody` POST model with camelCase fields and `Field(min_length/max_length=...)` constraints and no `playedAt` / `playCount`.
-- [ ] 5.9 Add handlers in `routers/history.py`: `GET /history` (`limit: int = Query(100, ge=1, le=800)` -> `{"results": history.list_entries(limit)}`); `POST /history` (`body: HistoryBody` -> `history.add(body.model_dump())`); `DELETE /history` (`history.clear()` -> `{"ok": True}`).
-- [ ] 5.10 In `backend/app/main.py`: import `history as history_router` and `history as history_service`; call `history_service.ensure()` in `lifespan` beside `playlists_service.ensure()`; `app.include_router(history_router.router, prefix="/api")`.
-- [ ] 5.11 Add `data/history.json` to `.gitignore`.
-- [ ] 5.12 Add the `HistoryEntry` interface to `frontend/src/types.ts` (`videoId`, `title`, `artist?`, `thumbnail?`, `kind: "song" | "video"`, `playedAt: number`, `playCount: number`, `source?`).
-- [ ] 5.13 Add `recordPlay(item, kind, source?)` and `getHistory(limit = 20)` to `frontend/src/api.ts`: `recordPlay` is fire-and-forget `void fetch(\`${BASE}/history\`, { method: "POST", headers: { "Content-Type": "application/json" }, body })...catch(() => {})` with song-vs-video body mapping per design; `getHistory` returns `r.results` with `.catch(() => [])`.
-- [ ] 5.14 In `frontend/src/components/PlayerBar.tsx`, inside the `useEffect` on `current`, immediately after `scrobbledRef.current = false;`, call `recordPlay(current, "song", "player")` unconditionally - beside `scrobbleNowPlaying`, NOT inside the `if (scrobblingOn())` gate, NOT replacing either scrobble call.
-- [ ] 5.15 In `frontend/src/components/WatchView.tsx`, in the Plyr `play` handler beside `claimPlayback("video")`, call `recordPlay(video, "video", "watch")`.
-- [ ] 5.16 Recommended tooling: add pytest + FastAPI `TestClient` as a backend dev dependency and create `backend/tests/test_history_service.py` - `monkeypatch` `settings.data_dir` to `tmp_path`; cover `add` dedupe / `playCount` / `playedAt` stamp / `CAP` trim, `list_entries` order + `limit`, and `clear`.
-- [ ] 5.17 Recommended tooling: create `backend/tests/test_history_router.py` with `TestClient` - `GET/POST/DELETE /api/history` happy path; 422 on missing `videoId` / missing `title`; 422 on an oversized body; entry NOT persisted on a 422.
-- [ ] 5.18 Verify (uvicorn dev + `curl`): `POST /api/history` valid / missing `videoId` / oversized body; play a song then a video and inspect `./data/history.json`; play the same song twice -> one entry `playCount:2`; A,B,A -> two A entries; `DELETE`; restart the backend -> `GET` still returns prior entries; `GET ?limit=10` caps and is newest-first.
-- [ ] 5.19 CHECK (preservation): scrobble still fires from `PlayerBar` (`recordPlay` is beside `scrobbleNowPlaying`, not replacing it); playback is unaffected when the backend is unreachable and no error surfaces.
+- [x] 5.1 Create `backend/app/services/history.py` mirroring `services/playlists.py`: `_FILE = os.path.join(settings.data_dir, "history.json")`, `_lock = threading.Lock()`, `CAP = 800`.
+- [x] 5.2 Implement `ensure()` - `os.makedirs(settings.data_dir, exist_ok=True)`, seed `{"entries": []}` when the file is absent.
+- [x] 5.3 Implement `_load()` - tolerant of `OSError` / `json.JSONDecodeError`, returns `{"entries": []}` when the shape is wrong.
+- [x] 5.4 Implement `_save(data)` - atomic write to `_FILE + ".tmp"` then `os.replace`, `json.dump(..., ensure_ascii=False)`.
+- [x] 5.5 Implement `add(entry)` - under `_lock`: if the last entry has the same `videoId`, bump `playedAt = now` and `playCount += 1`; else append `{**entry, "playedAt": now, "playCount": 1}`; drop oldest while `len(entries) > CAP`; return the stored entry.
+- [x] 5.6 Implement `list_entries(limit=None)` - newest-first (`reversed`), slice to `limit` when given.
+- [x] 5.7 Implement `clear()` - under `_lock`, `_save({"entries": []})`.
+- [x] 5.8 Create `backend/app/routers/history.py` (thin, `playlists.py` style): `router = APIRouter(tags=["history"])`, `HistoryEntry` response model, `HistoryBody` POST model with camelCase fields and `Field(min_length/max_length=...)` constraints and no `playedAt` / `playCount`.
+- [x] 5.9 Add handlers in `routers/history.py`: `GET /history` (`limit: int = Query(100, ge=1, le=800)` -> `{"results": history.list_entries(limit)}`); `POST /history` (`body: HistoryBody` -> `history.add(body.model_dump())`); `DELETE /history` (`history.clear()` -> `{"ok": True}`).
+- [x] 5.10 In `backend/app/main.py`: import `history as history_router` and `history as history_service`; call `history_service.ensure()` in `lifespan` beside `playlists_service.ensure()`; `app.include_router(history_router.router, prefix="/api")`.
+- [x] 5.11 Add `data/history.json` to `.gitignore`. _(Already covered by the existing `data/` rule at `.gitignore:9`; `data/playlists.json` and the batch zips are ignored by the same rule, so no edit needed — brief §4.)_
+- [x] 5.12 Add the `HistoryEntry` interface to `frontend/src/types.ts` (`videoId`, `title`, `artist?`, `thumbnail?`, `kind: "song" | "video"`, `playedAt: number`, `playCount: number`, `source?`).
+- [x] 5.13 Add `recordPlay(item, kind, source?)` and `getHistory(limit = 20)` to `frontend/src/api.ts`: `recordPlay` is fire-and-forget `void fetch(\`${BASE}/history\`, { method: "POST", headers: { "Content-Type": "application/json" }, body })...catch(() => {})` with song-vs-video body mapping per design; `getHistory` returns `r.results` with `.catch(() => [])`. _(Also added `clearHistory()` for the DELETE endpoint per brief §7.)_
+- [x] 5.14 In `frontend/src/components/PlayerBar.tsx`, inside the `useEffect` on `current`, immediately after `scrobbledRef.current = false;`, call `recordPlay(current, "song", "player")` unconditionally - beside `scrobbleNowPlaying`, NOT inside the `if (scrobblingOn())` gate, NOT replacing either scrobble call.
+- [x] 5.15 In `frontend/src/components/WatchView.tsx`, in the Plyr `play` handler beside `claimPlayback("video")`, call `recordPlay(video, "video", "watch")`.
+- [x] 5.16 Recommended tooling: add pytest + FastAPI `TestClient` as a backend dev dependency and create `backend/tests/test_history_service.py` - `monkeypatch` `settings.data_dir` to `tmp_path`; cover `add` dedupe / `playCount` / `playedAt` stamp / `CAP` trim, `list_entries` order + `limit`, and `clear`. _(Added `backend/requirements-dev.txt` + `backend/pytest.ini` + `backend/tests/conftest.py`. Tests written; NOT run — no venv/deps in this environment.)_
+- [x] 5.17 Recommended tooling: create `backend/tests/test_history_router.py` with `TestClient` - `GET/POST/DELETE /api/history` happy path; 422 on missing `videoId` / missing `title`; 422 on an oversized body; entry NOT persisted on a 422. _(Written; NOT run — no venv/deps.)_
+- [ ] 5.18 Verify (uvicorn dev + `curl`): `POST /api/history` valid / missing `videoId` / oversized body; play a song then a video and inspect `./data/history.json`; play the same song twice -> one entry `playCount:2`; A,B,A -> two A entries; `DELETE`; restart the backend -> `GET` still returns prior entries; `GET ?limit=10` caps and is newest-first. _(Deferred — no uvicorn/deps in this environment. Reviewer checklist in apply-progress.md.)_
+- [x] 5.19 CHECK (preservation): scrobble still fires from `PlayerBar` (`recordPlay` is beside `scrobbleNowPlaying`, not replacing it); playback is unaffected when the backend is unreachable and no error surfaces.
 
 ## Slice 6: Recommendations + related caching + "For you" UI (PR 6)
 

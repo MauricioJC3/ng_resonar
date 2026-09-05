@@ -5,6 +5,7 @@ import "plyr/dist/plyr.css";
 
 import {
   downloadUrl,
+  recordPlay,
   related,
   scrobbleNowPlaying,
   scrobbleSubmit,
@@ -299,6 +300,7 @@ export default function PlayerBar() {
     });
 
     scrobbledRef.current = false;
+    recordPlay(current, "song", "player");
     if (scrobblingOn()) scrobbleNowPlaying(current);
 
     if ("mediaSession" in navigator) {

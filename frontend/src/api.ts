@@ -2,6 +2,7 @@ import type {
   AppSettings,
   BatchStatus,
   DownloadFormat,
+  HistoryEntry,
   Lyrics,
   Playlist,
   PlaylistSummary,
@@ -192,4 +193,48 @@ export function scrobbleSubmit(track: Track): void {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ track }),
   }).catch(() => {});
+}
+
+// ---- Playback history ----
+
+export function recordPlay(
+  item: Track | VideoItem,
+  kind: "song" | "video",
+  source?: string,
+): void {
+  const body =
+    kind === "song"
+      ? {
+          videoId: (item as Track).id,
+          title: item.title,
+          artist: (item as Track).artists?.[0],
+          thumbnail: item.thumbnail,
+          kind,
+          source,
+        }
+      : {
+          videoId: (item as VideoItem).id,
+          title: item.title,
+          artist: (item as VideoItem).uploader,
+          thumbnail: item.thumbnail,
+          kind,
+          source,
+        };
+  void fetch(`${BASE}/history`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+}
+
+export function getHistory(limit = 20): Promise<HistoryEntry[]> {
+  return getJSON<{ results: HistoryEntry[] }>(`/history?limit=${limit}`)
+    .then((r) => r.results)
+    .catch(() => []);
+}
+
+export function clearHistory(): Promise<void> {
+  return fetch(`${BASE}/history`, { method: "DELETE" })
+    .then(() => undefined)
+    .catch(() => undefined);
 }

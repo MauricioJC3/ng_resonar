@@ -3,6 +3,7 @@ import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 
 import {
+  recordPlay,
   savedVideoDownloadUrl,
   savedVideoFileUrl,
   searchVideos,
@@ -96,7 +97,10 @@ export default function WatchView({
       keyboard: { focused: true, global: true },
     });
     plyrRef.current = player;
-    player.on("play", () => claimPlayback("video"));
+    player.on("play", () => {
+      claimPlayback("video");
+      recordPlay(video, "video", "watch");
+    });
     const off = onPlaybackClaim((kind) => {
       if (kind !== "video") videoRef.current?.pause();
     });

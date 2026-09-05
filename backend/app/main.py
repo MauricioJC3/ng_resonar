@@ -9,6 +9,7 @@ from .cache import make_cache
 from .config import settings
 from .routers import (
     download,
+    history as history_router,
     lyrics,
     playlists as playlists_router,
     search,
@@ -18,7 +19,11 @@ from .routers import (
     video,
     videolib,
 )
-from .services import audiobatch, playlists as playlists_service
+from .services import (
+    audiobatch,
+    history as history_service,
+    playlists as playlists_service,
+)
 from .services.videolib import cleanup_partials
 
 
@@ -26,6 +31,7 @@ from .services.videolib import cleanup_partials
 async def lifespan(app: FastAPI):
     cleanup_partials()
     playlists_service.ensure()
+    history_service.ensure()
     audiobatch.cleanup_old()
     deps.cache = make_cache()
     deps.http = httpx.AsyncClient(
@@ -55,6 +61,7 @@ app.include_router(videolib.router, prefix="/api")
 app.include_router(sponsorblock.router, prefix="/api")
 app.include_router(lyrics.router, prefix="/api")
 app.include_router(playlists_router.router, prefix="/api")
+app.include_router(history_router.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 app.include_router(download.router, prefix="/api")
 

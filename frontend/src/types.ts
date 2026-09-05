@@ -18,6 +18,17 @@ export interface VideoItem {
   thumbnail: string;
 }
 
+export interface HistoryEntry {
+  videoId: string;
+  title: string;
+  artist?: string | null;
+  thumbnail?: string | null;
+  kind: "song" | "video";
+  playedAt: number;
+  playCount: number;
+  source?: string | null;
+}
+
 export interface SavedVideo {
   id: string;
   title?: string | null;
