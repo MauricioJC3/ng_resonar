@@ -43,14 +43,22 @@ def _artists(item: dict) -> list[str]:
 
 def _norm(item: dict) -> dict:
     album = item.get("album")
+    vid = item.get("videoId")
+    # ytmusic search/watch responses drop the thumbnail array on some items
+    # (podcast/video results, sparse "watch playlist" entries). Every YouTube
+    # video has a static CDN thumbnail keyed by id — use it as a floor so the
+    # UI never shows a blank tile.
+    thumb = _thumb(item)
+    if not thumb and vid:
+        thumb = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
     return {
-        "id": item.get("videoId"),
+        "id": vid,
         "title": item.get("title"),
         "artists": _artists(item),
         "album": album.get("name") if isinstance(album, dict) else album,
         "duration": item.get("duration") or item.get("length"),
         "durationSeconds": item.get("duration_seconds"),
-        "thumbnail": _thumb(item),
+        "thumbnail": thumb,
     }
 
 

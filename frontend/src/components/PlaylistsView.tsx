@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { createPlaylist, usePlaylists } from "../state/playlists";
+import { createPlaylist, deletePlaylist, usePlaylists } from "../state/playlists";
 import Icon from "./Icon";
 
 export default function PlaylistsView({
@@ -35,11 +35,10 @@ export default function PlaylistsView({
       const pl = await createPlaylist("", url);
       onOpen(pl.id);
     } catch (e) {
-      setError(
-        e instanceof Error && e.message.includes("422")
-          ? "No se encontraron pistas en esa URL."
-          : "No se pudo importar.",
-      );
+      const raw = e instanceof Error ? e.message : "";
+      // send() throws "<status> <detail>" — show the server's detail if we got one.
+      const detail = raw.replace(/^\d{3}\s*/, "").trim();
+      setError(detail || "No se pudo importar esa URL.");
     } finally {
       setBusy(false);
     }
@@ -72,21 +71,31 @@ export default function PlaylistsView({
       ) : (
         <div className="plgrid">
           {lists.map((pl) => (
-            <button
-              key={pl.id}
-              className="plcard"
-              onClick={() => onOpen(pl.id)}
-            >
-              <span className="plcard__art">
-                {pl.thumbnail ? (
-                  <img src={pl.thumbnail} alt="" loading="lazy" />
-                ) : (
-                  <Icon name="list" size={24} />
-                )}
-              </span>
-              <span className="plcard__name">{pl.name}</span>
-              <span className="plcard__count">{pl.count} pistas</span>
-            </button>
+            <div key={pl.id} className="plcard-wrap">
+              <button className="plcard" onClick={() => onOpen(pl.id)}>
+                <span className="plcard__art">
+                  {pl.thumbnail ? (
+                    <img src={pl.thumbnail} alt="" loading="lazy" />
+                  ) : (
+                    <Icon name="list" size={24} />
+                  )}
+                </span>
+                <span className="plcard__name">{pl.name}</span>
+                <span className="plcard__count">{pl.count} pistas</span>
+              </button>
+              <button
+                className="plcard__del"
+                aria-label={`Borrar la playlist ${pl.name}`}
+                title="Borrar playlist"
+                onClick={() => {
+                  if (window.confirm(`¿Borrar la playlist "${pl.name}"?`)) {
+                    deletePlaylist(pl.id);
+                  }
+                }}
+              >
+                <Icon name="trash" size={15} />
+              </button>
+            </div>
           ))}
         </div>
       )}

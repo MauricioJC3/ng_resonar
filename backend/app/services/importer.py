@@ -33,6 +33,30 @@ def _extract_video_id(url: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _dedupe(tracks: list[dict]) -> list[dict]:
+    """Drop repeats. Exact by videoId, then a softer pass by
+    (title, first-artist) lowercased — YouTube Mixes love to serve the same
+    song as "… (Remaster)" / "… (Live)" / a Topic re-upload."""
+    out: list[dict] = []
+    seen_ids: set[str] = set()
+    seen_named: set[tuple[str, str]] = set()
+    for t in tracks:
+        vid = t.get("id")
+        if not vid or vid in seen_ids:
+            continue
+        title = (t.get("title") or "").strip().lower()
+        artist = (t.get("artists") or [""])[0].strip().lower()
+        # strip trailing "(...)" / "[...]" qualifiers for the soft key only
+        base = re.sub(r"\s*[\(\[].*?[\)\]]\s*$", "", title).strip()
+        named_key = (base or title, artist)
+        if base and named_key in seen_named:
+            continue
+        seen_ids.add(vid)
+        seen_named.add(named_key)
+        out.append(t)
+    return out
+
+
 def _ytdlp_playlist_sync(url: str, limit: int) -> dict:
     opts = {**_base_opts(), "extract_flat": True, "playlistend": limit}
     with yt_dlp.YoutubeDL(opts) as ydl:
@@ -61,19 +85,29 @@ def _ytdlp_playlist_sync(url: str, limit: int) -> dict:
 async def import_url(url: str, limit: int = 300) -> dict:
     list_id = _extract_list_id(url)
     seed = _extract_video_id(url)
+    is_mix = bool(list_id and list_id.startswith("RD"))
+    # A Mix / radio is an infinite personalised stream — importing 300 just
+    # gives you the same handful of songs looped. Snapshot a sane slice.
+    eff_limit = min(limit, 50) if is_mix else limit
+
+    def _finish(res: dict, fallback_title: str | None = None) -> dict:
+        tracks = _dedupe(res.get("tracks") or [])[:eff_limit]
+        return {"title": res.get("title") or fallback_title, "tracks": tracks}
 
     if list_id:
         try:
-            res = await ytmusic.playlist(list_id, limit, seed_video_id=seed)
+            res = await ytmusic.playlist(
+                list_id, eff_limit, seed_video_id=seed
+            )
             if res.get("tracks"):
-                return res
+                return _finish(res, "Mix de YouTube" if is_mix else None)
         except Exception:  # noqa: BLE001 - fall back to yt-dlp
             pass
 
     try:
-        res = await run_in_threadpool(_ytdlp_playlist_sync, url, limit)
+        res = await run_in_threadpool(_ytdlp_playlist_sync, url, eff_limit)
         if res.get("tracks"):
-            return res
+            return _finish(res, "Mix de YouTube" if is_mix else None)
     except Exception:  # noqa: BLE001
         pass
 
@@ -81,8 +115,8 @@ async def import_url(url: str, limit: int = 300) -> dict:
     # list, e.g. ".../watch?v=X&list=RDX&start_radio=1") — import that track's
     # radio as a one-off snapshot.
     if seed:
-        tracks = await ytmusic.related(seed, min(limit, 50))
+        tracks = await ytmusic.related(seed, 50)
         if tracks:
-            return {"title": "Mix de YouTube", "tracks": tracks}
+            return _finish({"tracks": tracks}, "Mix de YouTube")
 
     return {"title": None, "tracks": []}

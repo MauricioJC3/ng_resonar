@@ -24,10 +24,46 @@
   gap: 26px 18px;
 }
 
+.plcard-wrap {
+  position: relative;
+}
+
+.plcard__del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--stage-bg) 55%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--on-media);
+  opacity: 0;
+  transform: scale(0.9);
+  transition:
+    opacity var(--dur-base) var(--ease-standard),
+    transform var(--dur-base) var(--ease-emphasized),
+    background var(--dur-base) var(--ease-standard);
+}
+
+.plcard-wrap:hover .plcard__del,
+.plcard__del:focus-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.plcard__del:hover {
+  background: var(--danger);
+}
+
 .plcard {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
   border: 0;
   background: transparent;
   padding: 0;
