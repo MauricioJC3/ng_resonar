@@ -129,6 +129,25 @@ API account, pega key + secret y pulsa "Conectar cuenta"). Se manda
 "reproduciendo ahora" al empezar y el scrobble tras ~4 min o la mitad. Todo se
 guarda en `./data/settings.json` (los secretos no se devuelven por la API).
 
+## Autenticación
+
+En el primer arranque, con la tabla de usuarios vacía, la web muestra una
+pantalla única de "crear superadmin". No hay registro: solo el superadmin puede
+crear más usuarios después (desde Ajustes). Cada usuario tiene su propia
+biblioteca, playlists, favoritos e historial.
+
+Las variables de sesión (`SESSION_COOKIE_NAME`, `SESSION_COOKIE_SECURE`,
+`SESSION_*_TTL`, `BOOTSTRAP_TOKEN`, `DATABASE_URL`, `CORS_ORIGINS`) están
+documentadas en `.env.example` con sus valores por defecto de `docker-compose.yml`.
+
+**Acceso local por HTTP plano:** los valores por defecto usan el prefijo
+`__Host-` con `Secure=true`, correcto detrás de HTTPS (incluido el túnel de
+Cloudflare). Pero el navegador rechaza esa cookie sobre `http://` (todo lo que
+no sea HTTPS ni `localhost` a secas) y el login falla en silencio. Para acceder
+en local por HTTP plano poné `SESSION_COOKIE_NAME=resonar_session` y
+`SESSION_COOKIE_SECURE=false`; mantené el nombre `__Host-` y `secure=true` en
+cualquier despliegue con HTTPS.
+
 ## Notas de operación
 
 - **`yt-dlp` se rompe con frecuencia** cuando YouTube cambia algo. Va sin fijar

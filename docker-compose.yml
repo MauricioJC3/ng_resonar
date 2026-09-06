@@ -34,6 +34,10 @@ services:
       CORS_ORIGINS: ""
       STREAM_CACHE_TTL: "18000"
       SESSION_COOKIE_NAME: __Host-resonar_session
+      # For local access over plain HTTP (not HTTPS, not bare localhost) the
+      # browser rejects the __Host- / Secure cookie and login silently fails.
+      # See the "Authentication / session" note in .env.example for the
+      # resonar_session + SESSION_COOKIE_SECURE=false override.
       SESSION_COOKIE_SECURE: "true"
       SESSION_IDLE_TTL: "43200"
       SESSION_ABSOLUTE_TTL: "604800"
