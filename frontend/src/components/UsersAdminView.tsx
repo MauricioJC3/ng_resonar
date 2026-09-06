@@ -16,10 +16,10 @@ interface Props {
 
 function passwordError(err: unknown, fallback: string): string {
   if (err instanceof ApiError && err.status === 409) {
-    return "That username is already taken.";
+    return "Ese nombre de usuario ya está en uso.";
   }
   if (err instanceof ApiError && err.status === 422) {
-    return "Password must be at least 12 characters and not a common one.";
+    return "La contraseña debe tener al menos 12 caracteres y no ser una contraseña común.";
   }
   return fallback;
 }
@@ -38,7 +38,7 @@ export default function UsersAdminView({ user }: Props) {
     if (!isAdmin) return;
     listUsers()
       .then(setUsers)
-      .catch(() => setError("Could not load the user list."));
+      .catch(() => setError("No se pudo cargar la lista de usuarios."));
   }, [isAdmin]);
 
   useEffect(() => {
@@ -55,14 +55,14 @@ export default function UsersAdminView({ user }: Props) {
     try {
       const created = await createUser(name.trim(), pass);
       setInfo(
-        `User "${created.username}" created. Share this one-time password with ` +
-          `them — they must set their own on first login: ${pass}`,
+        `Usuario "${created.username}" creado. Pasale esta contraseña temporal ` +
+          `— la tiene que cambiar al entrar por primera vez: ${pass}`,
       );
       setName("");
       setPass("");
       refresh();
     } catch (err) {
-      setError(passwordError(err, "Could not create the user."));
+      setError(passwordError(err, "No se pudo crear el usuario."));
     } finally {
       setBusy(false);
     }
@@ -73,8 +73,8 @@ export default function UsersAdminView({ user }: Props) {
     setInfo(null);
     if (
       !window.confirm(
-        `Delete "${target.username}"? Their playlists, favorites and history ` +
-          "are removed too.",
+        `¿Eliminar a "${target.username}"? También se borran sus playlists, ` +
+          "favoritos e historial.",
       )
     ) {
       return;
@@ -85,8 +85,8 @@ export default function UsersAdminView({ user }: Props) {
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 409
-          ? "You cannot delete the last superadmin."
-          : "Could not delete the user.",
+          ? "No podés eliminar al último superadmin."
+          : "No se pudo eliminar el usuario.",
       );
     }
   }
@@ -95,19 +95,19 @@ export default function UsersAdminView({ user }: Props) {
     setError(null);
     setInfo(null);
     const next = window.prompt(
-      `New password for "${target.username}" (min. 12 characters):`,
+      `Nueva contraseña para "${target.username}" (mín. 12 caracteres):`,
     );
     if (!next) return;
     try {
       await adminSetPassword(target.id, next);
       setInfo(
-        `Password for "${target.username}" updated. They must change it on ` +
-          `next login. Share: ${next}`,
+        `Contraseña de "${target.username}" actualizada. La tiene que cambiar ` +
+          `en el próximo ingreso. Compartí: ${next}`,
       );
       refresh();
     } catch (err) {
       setError(
-        passwordError(err, "Could not update the password."),
+        passwordError(err, "No se pudo actualizar la contraseña."),
       );
     }
   }
