@@ -109,3 +109,13 @@ export async function reorderPlaylist(id: string, ids: string[]) {
   await reorderPlaylistApi(id, ids);
   await refreshOne(id);
 }
+
+/** Drop every cached playlist so the next mount reseeds for the new user. */
+export function resetPlaylists() {
+  summaries = [];
+  details = {};
+  initialized = false;
+  emit();
+}
+
+export { resetPlaylists as reset };

@@ -82,3 +82,12 @@ export function savedEntry(
 ): SavedVideo | undefined {
   return items.find((v) => v.id === id);
 }
+
+/** Clear the cached list; the shared poller repopulates it on the next tick. */
+export function resetSavedVideos() {
+  snapshot = [];
+  emit();
+  if (started) kick();
+}
+
+export { resetSavedVideos as reset };

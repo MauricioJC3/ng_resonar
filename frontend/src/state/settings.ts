@@ -46,6 +46,15 @@ export async function saveSettings(patch: unknown) {
   await refreshSettings();
 }
 
+/** Forget the cached settings so the next mount reseeds for the new user. */
+export function resetSettings() {
+  snapshot = null;
+  initialized = false;
+  emit();
+}
+
+export { resetSettings as reset };
+
 /** Synchronous check used by the player to avoid needless scrobble requests. */
 export function scrobblingOn(): boolean {
   const s = snapshot;

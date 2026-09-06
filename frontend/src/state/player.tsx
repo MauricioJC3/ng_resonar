@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
   type ReactNode,
@@ -25,7 +26,8 @@ type Action =
   | { type: "appendMany"; tracks: Track[] }
   | { type: "removeAt"; at: number }
   | { type: "move"; from: number; to: number }
-  | { type: "toggleRadio" };
+  | { type: "toggleRadio" }
+  | { type: "reset" };
 
 function clampIndex(i: number, len: number) {
   return Math.max(0, Math.min(i, Math.max(0, len - 1)));
@@ -97,6 +99,9 @@ function reducer(state: State, action: Action): State {
       }
       return { ...state, radio };
     }
+
+    case "reset":
+      return { queue: [], index: 0, radio: state.radio };
   }
 }
 
@@ -120,6 +125,15 @@ interface PlayerApi {
 
 const PlayerContext = createContext<PlayerApi | null>(null);
 
+// The queue lives in React state, but state/reset.ts is a plain module. The
+// mounted provider parks a queue-clear here so resetStores() can reach it.
+let clearQueue: (() => void) | null = null;
+
+/** Clear the play queue on logout / session expiry (no-op if unmounted). */
+export function resetPlayerQueue() {
+  clearQueue?.();
+}
+
 function initState(): State {
   let radio = false;
   try {
@@ -132,6 +146,13 @@ function initState(): State {
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initState);
+
+  useEffect(() => {
+    clearQueue = () => dispatch({ type: "reset" });
+    return () => {
+      clearQueue = null;
+    };
+  }, []);
 
   const api = useMemo<PlayerApi>(
     () => ({
