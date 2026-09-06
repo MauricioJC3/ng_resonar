@@ -87,3 +87,26 @@ export interface AppSettings {
 }
 
 export type DownloadFormat = "mp3" | "m4a" | "opus" | "flac";
+
+export type UserRole = "superadmin" | "user";
+
+export interface AuthUser {
+  id: number;
+  username: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+}
+
+export interface MeResponse {
+  authenticated: boolean;
+  user?: AuthUser;
+  bootstrapAvailable?: boolean;
+}
+
+export interface UserSummary {
+  id: number;
+  username: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+  createdAt?: number;
+}

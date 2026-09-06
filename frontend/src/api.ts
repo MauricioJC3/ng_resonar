@@ -1,24 +1,71 @@
 import type {
   AppSettings,
+  AuthUser,
   BatchStatus,
   DownloadFormat,
   HistoryEntry,
   Lyrics,
+  MeResponse,
   Playlist,
   PlaylistSummary,
   SavedVideo,
   Track,
+  UserSummary,
   VideoItem,
 } from "./types";
 
 const BASE = "/api";
 
-async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${detail}`.trim());
+/** Fired whenever any API call gets a 401, so `App.tsx` can return to the login gate. */
+export const SESSION_EXPIRED_EVENT = "resonar:session-expired";
+
+/** Error thrown by every failed API call; carries the HTTP status and an optional server code. */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(status: number, message: string, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
   }
+}
+
+/**
+ * Single choke point for every `/api` request.
+ *
+ * - always sends the session cookie (`credentials: "include"`)
+ * - on `401`: dispatches `resonar:session-expired` then throws
+ * - on `403 {code:"must_change_password"}`: throws an `ApiError` carrying `.code`
+ *   (no event — the user is authenticated, just restricted)
+ */
+async function req(path: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(`${BASE}${path}`, { credentials: "include", ...init });
+  if (res.ok) return res;
+
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+    throw new ApiError(401, "Session expired");
+  }
+
+  if (res.status === 403) {
+    const body = await res
+      .clone()
+      .json()
+      .catch(() => null);
+    const code = body?.code as string | undefined;
+    if (code === "must_change_password") {
+      throw new ApiError(403, "Password change required", code);
+    }
+  }
+
+  const detail = await res.text().catch(() => "");
+  throw new ApiError(res.status, `${res.status} ${detail}`.trim());
+}
+
+async function getJSON<T>(path: string): Promise<T> {
+  const res = await req(path);
   return res.json() as Promise<T>;
 }
 
@@ -73,16 +120,15 @@ export async function apiSaveVideo(
   quality = 1080,
   force = false,
 ): Promise<{ status: string }> {
-  const res = await fetch(
-    `${BASE}/library/videos/${id}?quality=${quality}&force=${force}`,
+  const res = await req(
+    `/library/videos/${id}?quality=${quality}&force=${force}`,
     { method: "POST" },
   );
-  if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }
 
 export async function apiDeleteSavedVideo(id: string): Promise<void> {
-  await fetch(`${BASE}/library/videos/${id}`, { method: "DELETE" });
+  await req(`/library/videos/${id}`, { method: "DELETE" });
 }
 
 export const streamUrl = (id: string) => `${BASE}/stream/${id}`;
@@ -118,15 +164,11 @@ export function getLyrics(
 // ---- Playlists ----
 
 async function send<T>(path: string, method: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await req(path, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${detail}`.trim());
-  }
   return res.json() as Promise<T>;
 }
 
@@ -145,7 +187,9 @@ export const renamePlaylistApi = (id: string, name: string) =>
   send<Playlist>(`/playlists/${id}`, "PATCH", { name });
 
 export const deletePlaylistApi = (id: string) =>
-  fetch(`${BASE}/playlists/${id}`, { method: "DELETE" }).then(() => undefined);
+  req(`/playlists/${id}`, { method: "DELETE" })
+    .then(() => undefined)
+    .catch(() => undefined);
 
 export const addTracksApi = (id: string, tracks: Track[]) =>
   send<Playlist>(`/playlists/${id}/tracks`, "POST", { tracks });
@@ -180,7 +224,7 @@ export const lastfmAuthUrl = (callback: string) =>
   );
 
 export function scrobbleNowPlaying(track: Track): void {
-  void fetch(`${BASE}/scrobble/now-playing`, {
+  void req(`/scrobble/now-playing`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ track }),
@@ -188,7 +232,7 @@ export function scrobbleNowPlaying(track: Track): void {
 }
 
 export function scrobbleSubmit(track: Track): void {
-  void fetch(`${BASE}/scrobble/submit`, {
+  void req(`/scrobble/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ track }),
@@ -220,7 +264,7 @@ export function recordPlay(
           kind,
           source,
         };
-  void fetch(`${BASE}/history`, {
+  void req(`/history`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -234,7 +278,7 @@ export function getHistory(limit = 20): Promise<HistoryEntry[]> {
 }
 
 export function clearHistory(): Promise<void> {
-  return fetch(`${BASE}/history`, { method: "DELETE" })
+  return req(`/history`, { method: "DELETE" })
     .then(() => undefined)
     .catch(() => undefined);
 }
@@ -246,3 +290,61 @@ export function recommendations(limit = 30): Promise<Track[]> {
     .then((r) => r.results)
     .catch(() => []);
 }
+
+// ---- Favorites (server-side, per user) ----
+
+export const getFavorites = () =>
+  getJSON<{ results: Track[] }>(`/favorites`).then((r) => r.results);
+
+export const addFavorite = (track: Track) =>
+  send<{ ok: boolean; added: boolean }>(`/favorites`, "POST", { track });
+
+export const removeFavorite = (trackId: string) =>
+  send<{ ok: boolean; removed: boolean }>(`/favorites/${trackId}`, "DELETE");
+
+// ---- Authentication ----
+
+interface AuthResponse {
+  authenticated: boolean;
+  user: AuthUser;
+}
+
+export const me = () => getJSON<MeResponse>(`/auth/me`);
+
+export const login = (username: string, password: string, remember: boolean) =>
+  send<AuthResponse>(`/auth/login`, "POST", { username, password, remember }).then(
+    (r) => r.user,
+  );
+
+export const logout = () => send<{ ok: boolean }>(`/auth/logout`, "POST");
+
+export const bootstrapSuperadmin = (
+  username: string,
+  password: string,
+  token?: string,
+) =>
+  send<AuthResponse>(`/auth/bootstrap`, "POST", {
+    username,
+    password,
+    bootstrapToken: token || undefined,
+  }).then((r) => r.user);
+
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  send<{ ok: boolean }>(`/auth/password`, "PATCH", {
+    currentPassword,
+    newPassword,
+  });
+
+// ---- User administration (superadmin only; consumed in a later slice) ----
+
+export const listUsers = () =>
+  getJSON<{ results: UserSummary[] }>(`/users`).then((r) => r.results);
+
+export const createUser = (username: string, password: string) =>
+  send<UserSummary>(`/users`, "POST", { username, password });
+
+export const deleteUser = (id: number) =>
+  send<{ ok: boolean }>(`/users/${id}`, "DELETE");
+
+export const adminSetPassword = (id: number, newPassword: string) =>
+  send<{ ok: boolean }>(`/users/${id}/password`, "PATCH", { newPassword });
