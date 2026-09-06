@@ -59,6 +59,27 @@ def test_another_users_id_is_invisible_to_get_rename_delete(db_session, alice, b
     assert playlists_repo.get(db_session, alice.id, pl.id) is not None
 
 
+def test_repo_helpers_are_scoped_to_the_owner(db_session, alice, bob):
+    """``tracks_of`` / ``_count`` / ``_first_thumbnail`` must be user-scoped in
+    the query itself: another user's real playlist id yields nothing."""
+    pl = playlists_repo.create(
+        db_session, alice.id, "Alice Mix", [_track("t1"), _track("t2")]
+    )
+
+    assert [
+        t["id"] for t in playlists_repo.tracks_of(db_session, alice.id, pl.id)
+    ] == ["t1", "t2"]
+    assert playlists_repo._count(db_session, alice.id, pl.id) == 2
+    assert (
+        playlists_repo._first_thumbnail(db_session, alice.id, pl.id)
+        == "http://t/t1.jpg"
+    )
+
+    assert playlists_repo.tracks_of(db_session, bob.id, pl.id) == []
+    assert playlists_repo._count(db_session, bob.id, pl.id) == 0
+    assert playlists_repo._first_thumbnail(db_session, bob.id, pl.id) is None
+
+
 def test_playlist_track_dedupe_on_create_and_add(db_session, alice):
     pl = playlists_repo.create(
         db_session,
@@ -66,7 +87,9 @@ def test_playlist_track_dedupe_on_create_and_add(db_session, alice):
         "Mix",
         [_track("t1"), _track("t1"), _track("t2")],
     )
-    assert [t["id"] for t in playlists_repo.tracks_of(db_session, pl.id)] == [
+    assert [
+        t["id"] for t in playlists_repo.tracks_of(db_session, alice.id, pl.id)
+    ] == [
         "t1",
         "t2",
     ]
@@ -74,7 +97,9 @@ def test_playlist_track_dedupe_on_create_and_add(db_session, alice):
     playlists_repo.add_tracks(
         db_session, alice.id, pl.id, [_track("t2"), _track("t3")]
     )
-    assert [t["id"] for t in playlists_repo.tracks_of(db_session, pl.id)] == [
+    assert [
+        t["id"] for t in playlists_repo.tracks_of(db_session, alice.id, pl.id)
+    ] == [
         "t1",
         "t2",
         "t3",
@@ -103,7 +128,9 @@ def test_reorder_puts_requested_ids_first(db_session, alice):
         db_session, alice.id, "L", [_track("a"), _track("b"), _track("c")]
     )
     playlists_repo.reorder(db_session, alice.id, pl.id, ["c", "a"])
-    assert [t["id"] for t in playlists_repo.tracks_of(db_session, pl.id)] == [
+    assert [
+        t["id"] for t in playlists_repo.tracks_of(db_session, alice.id, pl.id)
+    ] == [
         "c",
         "a",
         "b",

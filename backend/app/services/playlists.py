@@ -15,7 +15,7 @@ from ..repos import playlists as playlists_repo
 
 
 def _detail(db: Session, pl: PlaylistRow) -> dict:
-    tracks = playlists_repo.tracks_of(db, pl.id)
+    tracks = playlists_repo.tracks_of(db, pl.user_id, pl.id)
     return {
         "id": pl.id,
         "name": pl.name,

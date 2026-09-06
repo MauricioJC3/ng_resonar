@@ -33,27 +33,35 @@ def get(db: Session, user_id: int, pid: str) -> Playlist | None:
     return db.execute(stmt).scalar_one_or_none()
 
 
-def tracks_of(db: Session, pid: str) -> list[dict]:
+def tracks_of(db: Session, user_id: int, pid: str) -> list[dict]:
+    """Tracks of ``pid``, but only if ``pid`` belongs to ``user_id``.
+
+    The ownership check is in the query itself (JOIN + ``user_id`` filter), not
+    the caller: passing another user's playlist id simply yields an empty list.
+    """
     stmt = (
         select(PlaylistTrack.track)
-        .where(PlaylistTrack.playlist_id == pid)
+        .join(Playlist, Playlist.id == PlaylistTrack.playlist_id)
+        .where(Playlist.id == pid, Playlist.user_id == user_id)
         .order_by(PlaylistTrack.position)
     )
     return [row for (row,) in db.execute(stmt).all()]
 
 
-def _count(db: Session, pid: str) -> int:
+def _count(db: Session, user_id: int, pid: str) -> int:
     return db.execute(
         select(func.count())
         .select_from(PlaylistTrack)
-        .where(PlaylistTrack.playlist_id == pid)
+        .join(Playlist, Playlist.id == PlaylistTrack.playlist_id)
+        .where(Playlist.id == pid, Playlist.user_id == user_id)
     ).scalar_one()
 
 
-def _first_thumbnail(db: Session, pid: str) -> str | None:
+def _first_thumbnail(db: Session, user_id: int, pid: str) -> str | None:
     stmt = (
         select(PlaylistTrack.track)
-        .where(PlaylistTrack.playlist_id == pid)
+        .join(Playlist, Playlist.id == PlaylistTrack.playlist_id)
+        .where(Playlist.id == pid, Playlist.user_id == user_id)
         .order_by(PlaylistTrack.position)
         .limit(1)
     )
@@ -74,8 +82,8 @@ def list_summaries(db: Session, user_id: int) -> list[dict]:
             {
                 "id": pl.id,
                 "name": pl.name,
-                "count": _count(db, pl.id),
-                "thumbnail": _first_thumbnail(db, pl.id),
+                "count": _count(db, user_id, pl.id),
+                "thumbnail": _first_thumbnail(db, user_id, pl.id),
                 "updatedAt": int(pl.updated_at.timestamp()),
             }
         )
