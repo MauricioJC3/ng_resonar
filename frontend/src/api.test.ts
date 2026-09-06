@@ -25,12 +25,17 @@ describe("api req() interceptor", () => {
     window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
   });
 
-  it("throws an Error carrying .code on 403 must_change_password, with no event", async () => {
+  it("throws an Error carrying .code on the real FastAPI 403 body, with no event", async () => {
+    // The real backend raises `HTTPException(403, detail={"code": ...})`, which
+    // FastAPI serialises as `{"detail":{"code":"must_change_password"}}`.
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ code: "must_change_password" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify({ detail: { code: "must_change_password" } }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
     const onExpired = vi.fn();
     window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
@@ -47,6 +52,24 @@ describe("api req() interceptor", () => {
     expect(onExpired).not.toHaveBeenCalled();
 
     window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  });
+
+  it("also accepts a flattened 403 { code } body for forward-compat", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ code: "must_change_password" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    let err: (Error & { code?: string }) | undefined;
+    try {
+      await changePassword("old-secret", "new-secret-123456");
+    } catch (e) {
+      err = e as Error & { code?: string };
+    }
+
+    expect(err?.code).toBe("must_change_password");
   });
 
   it("does not treat a plain 403 as must_change_password", async () => {

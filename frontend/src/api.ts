@@ -54,7 +54,10 @@ async function req(path: string, init?: RequestInit): Promise<Response> {
       .clone()
       .json()
       .catch(() => null);
-    const code = body?.code as string | undefined;
+    // FastAPI wraps `HTTPException(detail=...)` as `{"detail": <detail>}`, so the
+    // real backend sends `{"detail":{"code":"must_change_password"}}`. Accept the
+    // flat `{"code":...}` shape too in case a future handler unwraps it.
+    const code = (body?.detail?.code ?? body?.code) as string | undefined;
     if (code === "must_change_password") {
       throw new ApiError(403, "Password change required", code);
     }
