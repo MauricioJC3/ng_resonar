@@ -58,6 +58,13 @@ def test_health_is_200_with_no_cookie(api):
     assert api.get("/api/health").status_code == 200
 
 
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+def test_interactive_docs_and_schema_are_disabled(api, path):
+    # They live outside /api and would otherwise expose the full route map
+    # without a session.
+    assert api.get(path).status_code == 404
+
+
 def test_logout_and_password_change_are_gated(api, db_reset):
     assert api.post("/api/auth/logout").status_code == 401
     assert api.patch(

@@ -54,7 +54,17 @@ async def lifespan(app: FastAPI):
         dispose_engine()
 
 
-app = FastAPI(title="Resonar API", version="0.1.0", lifespan=lifespan)
+# Interactive docs and the OpenAPI schema are disabled: they sit outside the
+# ``/api`` prefix and so bypass the router-level session guard, which would leave
+# the whole route map readable on an otherwise fully-authenticated instance.
+app = FastAPI(
+    title="Resonar API",
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 
 app.add_middleware(
     CORSMiddleware,
