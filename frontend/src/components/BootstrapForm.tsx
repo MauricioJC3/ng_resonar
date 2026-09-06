@@ -18,7 +18,7 @@ export default function BootstrapForm({ onSuccess }: Props) {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (password !== confirm) {
-      setError("The passwords do not match.");
+      setError("Las contraseñas no coinciden.");
       return;
     }
     setBusy(true);
@@ -29,10 +29,10 @@ export default function BootstrapForm({ onSuccess }: Props) {
     } catch (err) {
       const detail =
         err instanceof ApiError && err.status === 422
-          ? "Password must be at least 12 characters and not a common password."
+          ? "La contraseña debe tener al menos 12 caracteres y no ser una contraseña común."
           : err instanceof ApiError && err.status === 403
-            ? "Invalid bootstrap token."
-            : "Could not create the administrator account.";
+            ? "Token de arranque inválido."
+            : "No se pudo crear la cuenta de administrador.";
       setError(detail);
       setBusy(false);
     }
@@ -41,16 +41,16 @@ export default function BootstrapForm({ onSuccess }: Props) {
   return (
     <div className="auth">
       <form className="auth__card" onSubmit={submit}>
-        <h1 className="auth__title">Welcome to Resonar</h1>
+        <h1 className="auth__title">Bienvenido a Resonar</h1>
         <p className="auth__sub">
-          Create the first account. It becomes the superadmin.
+          Creá la primera cuenta. Va a ser la de superadmin.
         </p>
 
         <div className="field">
           <input
             type="text"
             autoComplete="username"
-            placeholder="Username"
+            placeholder="Usuario"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoFocus
@@ -61,7 +61,7 @@ export default function BootstrapForm({ onSuccess }: Props) {
           <input
             type="password"
             autoComplete="new-password"
-            placeholder="Password (min. 12 characters)"
+            placeholder="Contraseña (mín. 12 caracteres)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -71,7 +71,7 @@ export default function BootstrapForm({ onSuccess }: Props) {
           <input
             type="password"
             autoComplete="new-password"
-            placeholder="Confirm password"
+            placeholder="Confirmar contraseña"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             required
@@ -80,7 +80,7 @@ export default function BootstrapForm({ onSuccess }: Props) {
         <div className="field">
           <input
             type="password"
-            placeholder="Bootstrap token (if configured)"
+            placeholder="Token de arranque (si está configurado)"
             value={token}
             onChange={(e) => setToken(e.target.value)}
           />
@@ -93,7 +93,7 @@ export default function BootstrapForm({ onSuccess }: Props) {
           className="btn btn--accent auth__submit"
           disabled={busy}
         >
-          {busy ? "Creating…" : "Create administrator"}
+          {busy ? "Creando…" : "Crear administrador"}
         </button>
       </form>
     </div>

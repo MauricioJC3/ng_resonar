@@ -22,7 +22,7 @@ export default function LoginView({ onSuccess }: Props) {
       const user = await login(username, password, remember);
       onSuccess(user);
     } catch {
-      setError("Incorrect username or password.");
+      setError("Usuario o contraseña incorrectos.");
       setBusy(false);
     }
   }
@@ -31,13 +31,13 @@ export default function LoginView({ onSuccess }: Props) {
     <div className="auth">
       <form className="auth__card" onSubmit={submit}>
         <h1 className="auth__title">Resonar</h1>
-        <p className="auth__sub">Sign in to your library.</p>
+        <p className="auth__sub">Ingresá a tu biblioteca.</p>
 
         <div className="field">
           <input
             type="text"
             autoComplete="username"
-            placeholder="Username"
+            placeholder="Usuario"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoFocus
@@ -48,7 +48,7 @@ export default function LoginView({ onSuccess }: Props) {
           <input
             type="password"
             autoComplete="current-password"
-            placeholder="Password"
+            placeholder="Contraseña"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -61,7 +61,7 @@ export default function LoginView({ onSuccess }: Props) {
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
           />
-          Keep me signed in
+          Mantener la sesión iniciada
         </label>
 
         {error && <p className="hint hint--error">{error}</p>}
@@ -71,7 +71,7 @@ export default function LoginView({ onSuccess }: Props) {
           className="btn btn--accent auth__submit"
           disabled={busy}
         >
-          {busy ? "Signing in…" : "Sign in"}
+          {busy ? "Ingresando…" : "Ingresar"}
         </button>
       </form>
     </div>

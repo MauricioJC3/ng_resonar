@@ -23,7 +23,7 @@ export default function ChangePasswordView({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (next !== confirm) {
-      setError("The new passwords do not match.");
+      setError("Las nuevas contraseñas no coinciden.");
       return;
     }
     setBusy(true);
@@ -34,10 +34,10 @@ export default function ChangePasswordView({
     } catch (err) {
       const detail =
         err instanceof ApiError && err.status === 403
-          ? "Your current password is incorrect."
+          ? "Tu contraseña actual es incorrecta."
           : err instanceof ApiError && err.status === 422
-            ? "New password must be at least 12 characters and not a common password."
-            : "Could not change the password.";
+            ? "La nueva contraseña debe tener al menos 12 caracteres y no ser una contraseña común."
+            : "No se pudo cambiar la contraseña.";
       setError(detail);
       setBusy(false);
     }
@@ -45,18 +45,18 @@ export default function ChangePasswordView({
 
   const body = (
     <form className="auth__card" onSubmit={submit}>
-      <h1 className="auth__title">Choose a new password</h1>
+      <h1 className="auth__title">Elegí una nueva contraseña</h1>
       <p className="auth__sub">
         {forced
-          ? "Your account needs a new password before you can continue."
-          : "Update the password for your account."}
+          ? "Tu cuenta necesita una nueva contraseña antes de continuar."
+          : "Actualizá la contraseña de tu cuenta."}
       </p>
 
       <div className="field">
         <input
           type="password"
           autoComplete="current-password"
-          placeholder="Current password"
+          placeholder="Contraseña actual"
           value={current}
           onChange={(e) => setCurrent(e.target.value)}
           autoFocus
@@ -67,7 +67,7 @@ export default function ChangePasswordView({
         <input
           type="password"
           autoComplete="new-password"
-          placeholder="New password (min. 12 characters)"
+          placeholder="Nueva contraseña (mín. 12 caracteres)"
           value={next}
           onChange={(e) => setNext(e.target.value)}
           required
@@ -77,7 +77,7 @@ export default function ChangePasswordView({
         <input
           type="password"
           autoComplete="new-password"
-          placeholder="Confirm new password"
+          placeholder="Confirmar nueva contraseña"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           required
@@ -89,7 +89,7 @@ export default function ChangePasswordView({
       <div className="auth__actions">
         {!forced && onCancel && (
           <button type="button" className="btn btn--ghost" onClick={onCancel}>
-            Cancel
+            Cancelar
           </button>
         )}
         <button
@@ -97,7 +97,7 @@ export default function ChangePasswordView({
           className="btn btn--accent auth__submit"
           disabled={busy}
         >
-          {busy ? "Saving…" : "Save password"}
+          {busy ? "Guardando…" : "Guardar contraseña"}
         </button>
       </div>
     </form>
