@@ -134,6 +134,13 @@ export default function WatchView({
     return () => el.removeEventListener("loadedmetadata", onMeta);
   }, [srcUrl, video.id]);
 
+  // When opening a video that is already saved, default the picker to the
+  // quality it was saved at so "Cambiar calidad" starts from the real value.
+  useEffect(() => {
+    if (entry?.status === "ready" && entry.quality) setQuality(entry.quality);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video.id, entry?.status]);
+
   // SponsorBlock segments for this video.
   useEffect(() => {
     segmentsRef.current = [];
@@ -250,6 +257,26 @@ export default function WatchView({
             <span className="badge badge--hd">
               Guardado{entry.height ? ` · ${entry.height}p` : ""}
             </span>
+            <select
+              className="savebox__quality"
+              value={quality}
+              onChange={(e) => setQuality(Number(e.target.value))}
+              aria-label="Calidad para volver a guardar"
+            >
+              {QUALITIES.map((q) => (
+                <option key={q} value={q}>
+                  {q}p
+                </option>
+              ))}
+            </select>
+            <button
+              className="btn"
+              onClick={() => saveVideo(video.id, quality, true)}
+              disabled={quality === entry.quality}
+              title="Vuelve a descargar el video en la calidad elegida"
+            >
+              <Icon name="download" size={15} /> Cambiar calidad
+            </button>
             <a className="btn" href={savedVideoDownloadUrl(video.id)} download>
               <Icon name="download" size={15} /> Descargar archivo
             </a>
