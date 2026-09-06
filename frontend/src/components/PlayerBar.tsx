@@ -32,6 +32,7 @@ function reducedMotion(): boolean {
 export default function PlayerBar() {
   const { current, next, prev, hasNext, radio, toggleRadio, appendMany, queue } =
     usePlayer();
+  const library = useLibrary();
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
