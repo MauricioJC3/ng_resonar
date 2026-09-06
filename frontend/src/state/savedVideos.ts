@@ -83,11 +83,20 @@ export function savedEntry(
   return items.find((v) => v.id === id);
 }
 
-/** Clear the cached list; the shared poller repopulates it on the next tick. */
+/**
+ * Stop the poller and clear the cached list (called on logout / 401).
+ *
+ * We must NOT re-kick `poll()` here: with no session the immediate
+ * `GET /api/library/videos` 401s, which re-dispatches `resonar:session-expired`
+ * and re-arms the 20s timer, so the login screen would fire a background 401
+ * every ~20s. The poller re-arms naturally on the next `useSavedVideos()` mount
+ * after re-login.
+ */
 export function resetSavedVideos() {
+  window.clearTimeout(timer);
+  started = false;
   snapshot = [];
   emit();
-  if (started) kick();
 }
 
 export { resetSavedVideos as reset };
