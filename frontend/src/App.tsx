@@ -93,5 +93,7 @@ export default function App() {
   if (gate === "must-change-password") {
     return <ChangePasswordView forced onSuccess={onPasswordChanged} />;
   }
-  return <AuthedApp key={user?.id ?? "authed"} onLogout={onLogout} />;
+  return (
+    <AuthedApp key={user?.id ?? "authed"} user={user} onLogout={onLogout} />
+  );
 }

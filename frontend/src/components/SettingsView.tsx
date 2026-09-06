@@ -2,9 +2,17 @@ import { useState } from "react";
 
 import { lastfmAuthUrl } from "../api";
 import { refreshSettings, saveSettings, useSettings } from "../state/settings";
+import type { AuthUser } from "../types";
+import ChangePasswordView from "./ChangePasswordView";
 import Icon from "./Icon";
+import UsersAdminView from "./UsersAdminView";
 
 type Theme = "light" | "dark";
+
+interface Props {
+  user: AuthUser | null;
+  onLogout: () => void;
+}
 
 function currentTheme(): Theme {
   if (typeof document === "undefined") return "dark";
@@ -27,12 +35,13 @@ function applyTheme(next: Theme) {
   if (meta) meta.setAttribute("content", next === "light" ? "#F1F4F3" : "#0E1414");
 }
 
-export default function SettingsView() {
+export default function SettingsView({ user, onLogout }: Props) {
   const s = useSettings();
   const [lbToken, setLbToken] = useState("");
   const [lfKey, setLfKey] = useState("");
   const [lfSecret, setLfSecret] = useState("");
   const [msg, setMsg] = useState("");
+  const [pwMsg, setPwMsg] = useState("");
   const [theme, setTheme] = useState<Theme>(currentTheme);
 
   function toggleTheme() {
@@ -41,9 +50,32 @@ export default function SettingsView() {
     setTheme(next);
   }
 
+  const accountSection = (
+    <section className="card">
+      <div className="card__head">
+        <h2>Cuenta</h2>
+        <button type="button" className="btn btn--ghost" onClick={onLogout}>
+          <Icon name="logout" size={15} />
+          Cerrar sesión
+        </button>
+      </div>
+      {user && (
+        <p className="card__sub">
+          Conectado como <strong>{user.username}</strong>
+          {user.role === "superadmin" ? " (superadmin)." : "."}
+        </p>
+      )}
+      <ChangePasswordView onSuccess={() => setPwMsg("Contraseña actualizada.")} />
+      {pwMsg && <p className="hint">{pwMsg}</p>}
+    </section>
+  );
+
   if (!s) {
     return (
-      <div className="view">
+      <div className="view settings">
+        <h1 className="view__title">Ajustes</h1>
+        {accountSection}
+        {user && <UsersAdminView user={user} />}
         <p className="hint">Cargando…</p>
       </div>
     );
@@ -76,6 +108,9 @@ export default function SettingsView() {
   return (
     <div className="view settings">
       <h1 className="view__title">Ajustes</h1>
+
+      {accountSection}
+      {user && <UsersAdminView user={user} />}
 
       <section className="card">
         <div className="card__head">

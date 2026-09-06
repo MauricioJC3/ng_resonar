@@ -13,7 +13,7 @@ import WatchView from "./components/WatchView";
 import PlayerBar from "./components/PlayerBar";
 import { PlayerProvider } from "./state/player";
 import type { View } from "./App";
-import type { VideoItem } from "./types";
+import type { AuthUser, VideoItem } from "./types";
 
 interface NavState {
   view: View;
@@ -39,7 +39,13 @@ function prefersReducedMotion(): boolean {
  * plus an `onLogout` prop threaded to `Nav`. It only ever mounts under the
  * `authed` gate, so its history/popstate effects never run on the login screen.
  */
-export default function AuthedApp({ onLogout }: { onLogout: () => void }) {
+export default function AuthedApp({
+  user,
+  onLogout,
+}: {
+  user: AuthUser | null;
+  onLogout: () => void;
+}) {
   const [view, setView] = useState<View>(DEFAULT_STATE.view);
   const [watching, setWatching] = useState<VideoItem | null>(
     DEFAULT_STATE.watching,
@@ -126,7 +132,7 @@ export default function AuthedApp({ onLogout }: { onLogout: () => void }) {
   } else if (view === "playlists") {
     content = <PlaylistsView onOpen={openPlaylistDetail} />;
   } else if (view === "settings") {
-    content = <SettingsView />;
+    content = <SettingsView user={user} onLogout={onLogout} />;
   } else {
     content = <LibraryView onWatch={watch} />;
   }
