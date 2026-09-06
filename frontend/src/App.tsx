@@ -1,18 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { flushSync } from "react-dom";
 
-import Nav from "./components/Nav";
-import HomeView from "./components/HomeView";
-import SearchView from "./components/SearchView";
-import VideosView from "./components/VideosView";
-import PlaylistsView from "./components/PlaylistsView";
-import PlaylistDetailView from "./components/PlaylistDetailView";
-import LibraryView from "./components/LibraryView";
-import SettingsView from "./components/SettingsView";
-import WatchView from "./components/WatchView";
-import PlayerBar from "./components/PlayerBar";
-import { PlayerProvider } from "./state/player";
-import type { VideoItem } from "./types";
+import { logout, me, SESSION_EXPIRED_EVENT } from "./api";
+import AuthedApp from "./AuthedApp";
+import BootstrapForm from "./components/BootstrapForm";
+import ChangePasswordView from "./components/ChangePasswordView";
+import LoginView from "./components/LoginView";
+import { resetStores } from "./state/reset";
+import type { AuthUser } from "./types";
 
 export type View =
   | "home"
@@ -22,124 +16,82 @@ export type View =
   | "library"
   | "settings";
 
-interface NavState {
-  view: View;
-  watching: VideoItem | null;
-  openPlaylist: string | null;
-}
-
-const DEFAULT_STATE: NavState = {
-  view: "home",
-  watching: null,
-  openPlaylist: null,
-};
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
+type Gate =
+  | "loading"
+  | "bootstrap"
+  | "login"
+  | "authed"
+  | "must-change-password";
 
 export default function App() {
-  const [view, setView] = useState<View>(DEFAULT_STATE.view);
-  const [watching, setWatching] = useState<VideoItem | null>(
-    DEFAULT_STATE.watching,
-  );
-  const [openPlaylist, setOpenPlaylist] = useState<string | null>(
-    DEFAULT_STATE.openPlaylist,
-  );
+  const [gate, setGate] = useState<Gate>("loading");
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  // Apply a resolved navigation state to the three setters. No history writes.
-  const applyState = useCallback((s: NavState) => {
-    setView(s.view);
-    setWatching(s.watching);
-    setOpenPlaylist(s.openPlaylist);
+  const enter = useCallback((u: AuthUser) => {
+    setUser(u);
+    setGate(u.mustChangePassword ? "must-change-password" : "authed");
   }, []);
 
-  // Single funnel for every view/overlay transition: push history, then swap
-  // the content — wrapped in a View Transition when the engine supports it.
-  const go = useCallback(
-    (next: NavState) => {
-      history.pushState({ ...next, np: false }, "");
-      if (
-        typeof document.startViewTransition === "function" &&
-        !prefersReducedMotion()
-      ) {
-        document.startViewTransition(() => flushSync(() => applyState(next)));
-      } else {
-        applyState(next);
-      }
-    },
-    [applyState],
-  );
-
-  // First Back needs a target: stamp the current state onto the entry (mount only).
+  // Cold start: ask the server who we are before rendering anything.
   useEffect(() => {
-    history.replaceState({ ...DEFAULT_STATE, np: false }, "");
-  }, []);
-
-  // Back/forward gesture: restore state from the history entry (never re-push).
-  useEffect(() => {
-    const onPop = (e: PopStateEvent) => {
-      const s = (e.state ?? null) as Partial<NavState> | null;
-      applyState({
-        view: (s?.view as View) ?? DEFAULT_STATE.view,
-        watching: (s?.watching as VideoItem | null) ?? DEFAULT_STATE.watching,
-        openPlaylist: s?.openPlaylist ?? DEFAULT_STATE.openPlaylist,
+    let active = true;
+    me()
+      .then((res) => {
+        if (!active) return;
+        if (res.authenticated && res.user) {
+          setUser(res.user);
+          setGate(
+            res.user.mustChangePassword ? "must-change-password" : "authed",
+          );
+        } else if (res.bootstrapAvailable) {
+          setGate("bootstrap");
+        } else {
+          setGate("login");
+        }
+      })
+      .catch(() => {
+        if (active) setGate("login");
       });
+    return () => {
+      active = false;
     };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [applyState]);
+  }, []);
 
-  const navigate = useCallback(
-    (v: View) => go({ view: v, watching: null, openPlaylist: null }),
-    [go],
-  );
+  // Any API 401 anywhere -> drop client state and return to the login gate.
+  useEffect(() => {
+    const onExpired = () => {
+      resetStores();
+      setUser(null);
+      setGate("login");
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
 
-  const watch = useCallback(
-    (v: VideoItem) => go({ view, watching: v, openPlaylist: null }),
-    [go, view],
-  );
+  const onPasswordChanged = useCallback(() => {
+    setUser((u) => (u ? { ...u, mustChangePassword: false } : u));
+    setGate("authed");
+  }, []);
 
-  const openPlaylistDetail = useCallback(
-    (id: string) =>
-      go({ view: "playlists", watching: null, openPlaylist: id }),
-    [go],
-  );
+  const onLogout = useCallback(() => {
+    void logout().finally(() => {
+      resetStores();
+      setUser(null);
+      setGate("login");
+    });
+  }, []);
 
-  // Overlays close by walking history back so the Back gesture stays consistent.
-  const back = useCallback(() => history.back(), []);
-
-  let content;
-  if (watching) {
-    content = (
-      <WatchView video={watching} onClose={back} onWatch={watch} />
-    );
-  } else if (view === "playlists" && openPlaylist) {
-    content = <PlaylistDetailView id={openPlaylist} onBack={back} />;
-  } else if (view === "home") {
-    content = <HomeView />;
-  } else if (view === "search") {
-    content = <SearchView />;
-  } else if (view === "videos") {
-    content = <VideosView onWatch={watch} />;
-  } else if (view === "playlists") {
-    content = <PlaylistsView onOpen={openPlaylistDetail} />;
-  } else if (view === "settings") {
-    content = <SettingsView />;
-  } else {
-    content = <LibraryView onWatch={watch} />;
+  if (gate === "loading") {
+    return <div className="auth-splash">Resonar</div>;
   }
-
-  return (
-    <PlayerProvider>
-      <div className="app">
-        <Nav view={view} onNavigate={navigate} />
-        <main className="main">{content}</main>
-        <PlayerBar />
-      </div>
-    </PlayerProvider>
-  );
+  if (gate === "bootstrap") {
+    return <BootstrapForm onSuccess={enter} />;
+  }
+  if (gate === "login") {
+    return <LoginView onSuccess={enter} />;
+  }
+  if (gate === "must-change-password") {
+    return <ChangePasswordView forced onSuccess={onPasswordChanged} />;
+  }
+  return <AuthedApp key={user?.id ?? "authed"} onLogout={onLogout} />;
 }

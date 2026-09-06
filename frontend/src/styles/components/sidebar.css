@@ -74,6 +74,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.nav__logout {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
 .nav__note {
   margin-top: auto;
   font-size: 12px;
@@ -97,6 +102,7 @@
   }
 
   .nav__brand,
+  .nav__logout,
   .nav__note {
     display: none;
   }

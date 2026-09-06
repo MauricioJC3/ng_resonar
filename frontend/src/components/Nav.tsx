@@ -14,9 +14,11 @@ const NAV: { id: View; label: string; icon: string }[] = [
 export default function Nav({
   view,
   onNavigate,
+  onLogout,
 }: {
   view: View;
   onNavigate: (v: View) => void;
+  onLogout?: () => void;
 }) {
   const library = useLibrary();
 
@@ -49,6 +51,17 @@ export default function Nav({
           );
         })}
       </div>
+
+      {onLogout && (
+        <button
+          type="button"
+          className="btn btn--ghost nav__logout"
+          onClick={onLogout}
+        >
+          <Icon name="settings" size={16} />
+          <span className="nav__label">Cerrar sesión</span>
+        </button>
+      )}
 
       <p className="nav__note">
         Reproducción y descargas desde fuentes públicas. Pensado para uso
