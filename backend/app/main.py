@@ -9,7 +9,7 @@ from . import deps
 from .cache import make_cache
 from .config import settings
 from .db import dispose_engine, init_engine
-from .deps import current_user
+from .deps import current_user, require_superadmin
 from .routers import (
     auth as auth_router,
     download,
@@ -22,6 +22,7 @@ from .routers import (
     settings as settings_router,
     sponsorblock,
     stream,
+    users as users_router,
     video,
     videolib,
 )
@@ -87,6 +88,14 @@ for _router in (
     favorites_router,
 ):
     app.include_router(_router.router, prefix="/api", dependencies=[_guard])
+
+# Superadmin-only surface. `require_superadmin` chains `current_user`, so an
+# unauthenticated caller still gets 401 and a non-superadmin gets 403.
+app.include_router(
+    users_router.router,
+    prefix="/api",
+    dependencies=[Depends(require_superadmin)],
+)
 
 
 @app.get("/api/health")
