@@ -21,4 +21,5 @@
 @import "./components/playlists.css";
 @import "./components/lyrics.css";
 @import "./components/settings.css";
+@import "./components/auth.css";
 @import "./layout.css";
