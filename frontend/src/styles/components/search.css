@@ -84,7 +84,8 @@
   cursor: pointer;
 }
 
-.searchbar__suggestions li:hover {
+.searchbar__suggestions li:hover,
+.searchbar__suggestions li.is-active {
   background: var(--bg-elev-2);
   color: var(--text);
 }

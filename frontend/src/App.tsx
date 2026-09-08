@@ -14,6 +14,7 @@ export type View =
   | "videos"
   | "playlists"
   | "library"
+  | "history"
   | "settings";
 
 type Gate =

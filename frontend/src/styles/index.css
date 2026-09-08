@@ -19,6 +19,8 @@
 @import "./components/drawer.css";
 @import "./components/misc-chips.css";
 @import "./components/playlists.css";
+@import "./components/browse.css";
+@import "./components/history.css";
 @import "./components/lyrics.css";
 @import "./components/settings.css";
 @import "./components/auth.css";

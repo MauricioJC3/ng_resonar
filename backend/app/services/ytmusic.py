@@ -71,6 +71,91 @@ def _search_sync(query: str, filter_: str | None, limit: int) -> list[dict]:
     return out
 
 
+def _norm_album(item: dict) -> dict:
+    return {
+        "browseId": item.get("browseId"),
+        "playlistId": item.get("playlistId") or item.get("audioPlaylistId"),
+        "title": item.get("title"),
+        "artists": _artists(item),
+        "year": item.get("year"),
+        "type": item.get("type"),  # "Album" / "Single" / "EP"
+        "thumbnail": _thumb(item),
+    }
+
+
+def _norm_artist(item: dict) -> dict:
+    return {
+        "browseId": item.get("browseId"),
+        "name": item.get("artist") or item.get("title"),
+        "thumbnail": _thumb(item),
+    }
+
+
+def _search_meta_sync(query: str, filter_: str, limit: int) -> list[dict]:
+    """Search that keeps album / artist cards instead of playable tracks."""
+    raw = _yt().search(query, filter=filter_, limit=limit)
+    norm = _norm_album if filter_ == "albums" else _norm_artist
+    out: list[dict] = []
+    for item in raw:
+        if item.get("browseId"):
+            out.append(norm(item))
+    return out
+
+
+def _album_sync(browse_id: str) -> dict:
+    alb = _yt().get_album(browse_id)
+    alb_artists = _artists(alb)
+    alb_thumb = _thumb(alb)
+    tracks: list[dict] = []
+    for t in alb.get("tracks", []) or []:
+        if not t.get("videoId"):
+            continue
+        n = _norm(t)
+        # Album track rows routinely drop the album name / thumbnail / artist.
+        n["album"] = n.get("album") or alb.get("title")
+        n["thumbnail"] = n.get("thumbnail") or alb_thumb
+        if not n.get("artists"):
+            n["artists"] = alb_artists
+        tracks.append(n)
+    return {
+        "browseId": browse_id,
+        "title": alb.get("title"),
+        "artists": alb_artists,
+        "year": alb.get("year"),
+        "duration": alb.get("duration"),
+        "trackCount": alb.get("trackCount") or len(tracks),
+        "thumbnail": alb_thumb,
+        "tracks": tracks,
+    }
+
+
+def _artist_sync(browse_id: str) -> dict:
+    a = _yt().get_artist(browse_id)
+
+    top_songs: list[dict] = []
+    for t in (a.get("songs") or {}).get("results", []) or []:
+        if t.get("videoId"):
+            top_songs.append(_norm(t))
+
+    def _cards(key: str) -> list[dict]:
+        sec = a.get(key) or {}
+        return [
+            _norm_album(it)
+            for it in sec.get("results", []) or []
+            if it.get("browseId")
+        ]
+
+    return {
+        "browseId": browse_id,
+        "name": a.get("name"),
+        "thumbnail": _thumb(a),
+        "description": a.get("description"),
+        "topSongs": top_songs,
+        "albums": _cards("albums"),
+        "singles": _cards("singles"),
+    }
+
+
 def _related_sync(video_id: str, limit: int) -> list[dict]:
     yt = _yt()
     # Preferred: the autoplay "radio" for this track.
@@ -109,7 +194,17 @@ def _related_sync(video_id: str, limit: int) -> list[dict]:
 
 
 async def search(query: str, filter_: str = "songs", limit: int = 25) -> list[dict]:
+    if filter_ in ("albums", "artists"):
+        return await run_in_threadpool(_search_meta_sync, query, filter_, limit)
     return await run_in_threadpool(_search_sync, query, filter_, limit)
+
+
+async def album(browse_id: str) -> dict:
+    return await run_in_threadpool(_album_sync, browse_id)
+
+
+async def artist(browse_id: str) -> dict:
+    return await run_in_threadpool(_artist_sync, browse_id)
 
 
 async def suggestions(query: str) -> list[str]:

@@ -15,5 +15,7 @@ interface NavHistoryState {
   view?: string;
   watching?: unknown;
   openPlaylist?: string | null;
+  openAlbum?: string | null;
+  openArtist?: string | null;
   np?: boolean;
 }

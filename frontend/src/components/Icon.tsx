@@ -136,6 +136,13 @@ const PATHS: Record<string, ReactElement> = {
       <path d="M9.5 21v-6h5v6" />
     </>
   ),
+  history: (
+    <>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l3.5 2" />
+    </>
+  ),
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronUp: <path d="m6 15 6-6 6 6" />,
   settings: (

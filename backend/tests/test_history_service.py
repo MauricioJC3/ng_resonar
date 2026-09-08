@@ -118,6 +118,27 @@ def test_cap_drops_oldest_on_overflow(db_session, alice):
     assert f"v{history_repo.CAP + overflow - 1:04d}" in kept_ids  # newest kept
 
 
+def test_list_filters_by_kind(db_session, alice):
+    history_repo.add(db_session, alice.id, _entry("s1", kind="song"))
+    history_repo.add(db_session, alice.id, _entry("v1", kind="video"))
+    history_repo.add(db_session, alice.id, _entry("s2", kind="song"))
+
+    assert [
+        r.video_id for r in history_repo.list_(db_session, alice.id, kind="song")
+    ] == ["s2", "s1"]
+    assert [
+        r.video_id for r in history_repo.list_(db_session, alice.id, kind="video")
+    ] == ["v1"]
+    assert len(history_repo.list_(db_session, alice.id)) == 3
+
+
+def test_clear_with_kind_only_removes_that_kind(db_session, alice):
+    history_repo.add(db_session, alice.id, _entry("s1", kind="song"))
+    history_repo.add(db_session, alice.id, _entry("v1", kind="video"))
+    history_repo.clear_(db_session, alice.id, kind="video")
+    assert [r.video_id for r in history_repo.list_(db_session, alice.id)] == ["s1"]
+
+
 def test_clear_is_user_scoped(db_session, alice, bob):
     history_repo.add(db_session, alice.id, _entry("a1"))
     history_repo.add(db_session, bob.id, _entry("b1"))

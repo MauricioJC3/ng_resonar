@@ -27,6 +27,7 @@
 .watch__stage {
   position: relative;
   width: 100%;
+  min-height: 220px;
   border-radius: 18px;
   overflow: hidden;
   background: var(--stage-bg);
@@ -37,6 +38,23 @@
 .watch__stage .plyr__video-wrapper,
 .watch__stage video {
   border-radius: 18px;
+}
+
+.watch__stage-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  color: var(--on-media);
+  background: color-mix(in srgb, var(--stage-bg) 72%, transparent);
+  backdrop-filter: blur(4px);
+  font-size: 14px;
 }
 
 .watch__hd {

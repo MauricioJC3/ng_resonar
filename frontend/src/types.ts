@@ -18,6 +18,38 @@ export interface VideoItem {
   thumbnail: string;
 }
 
+export interface ArtistCard {
+  browseId: string;
+  name: string;
+  thumbnail?: string | null;
+}
+
+export interface AlbumCard {
+  browseId: string;
+  playlistId?: string | null;
+  title: string;
+  artists: string[];
+  year?: string | null;
+  type?: string | null;
+  thumbnail?: string | null;
+}
+
+export interface Album extends AlbumCard {
+  duration?: string | null;
+  trackCount?: number | null;
+  tracks: Track[];
+}
+
+export interface Artist {
+  browseId: string;
+  name: string;
+  thumbnail?: string | null;
+  description?: string | null;
+  topSongs: Track[];
+  albums: AlbumCard[];
+  singles: AlbumCard[];
+}
+
 export interface HistoryEntry {
   videoId: string;
   title: string;

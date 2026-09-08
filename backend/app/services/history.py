@@ -35,10 +35,16 @@ def add(db: Session, user_id: int, entry: dict) -> dict:
 
 
 def list_entries(
-    db: Session, user_id: int, limit: int | None = None
+    db: Session,
+    user_id: int,
+    limit: int | None = None,
+    kind: str | None = None,
 ) -> list[dict]:
-    return [_serialize(row) for row in history_repo.list_(db, user_id, limit)]
+    return [
+        _serialize(row)
+        for row in history_repo.list_(db, user_id, limit, kind)
+    ]
 
 
-def clear(db: Session, user_id: int) -> None:
-    history_repo.clear_(db, user_id)
+def clear(db: Session, user_id: int, kind: str | None = None) -> None:
+    history_repo.clear_(db, user_id, kind)

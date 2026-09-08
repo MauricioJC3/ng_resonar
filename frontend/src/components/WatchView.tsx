@@ -63,6 +63,12 @@ export default function WatchView({
 
   const [quality, setQuality] = useState(1080);
   const [related, setRelated] = useState<VideoItem[]>([]);
+  // Guards the "stage stays black forever" case: a stream that never extracts
+  // or 404s used to leave a black rectangle with no way out but a reload.
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+  const [reloadKey, setReloadKey] = useState(0);
   const [sbOn, setSbOn] = useState(() => {
     try {
       return localStorage.getItem(SB_KEY) !== "0";
@@ -119,7 +125,9 @@ export default function WatchView({
     const resumeAt = sameVideo ? el.currentTime : 0;
     lastIdRef.current = video.id;
 
+    setLoadState("loading");
     el.src = srcUrl;
+
     const onMeta = () => {
       if (resumeAt > 1 && Number.isFinite(resumeAt)) {
         try {
@@ -129,10 +137,27 @@ export default function WatchView({
         }
       }
     };
+    const onReady = () => setLoadState("ready");
+    const onError = () => setLoadState("error");
+    // yt-dlp extraction can be slow but not forever — after this long a still
+    // "loading" stage is a stuck stream, not a slow one.
+    const timeout = window.setTimeout(() => {
+      setLoadState((s) => (s === "loading" ? "error" : s));
+    }, 25000);
+
     el.addEventListener("loadedmetadata", onMeta, { once: true });
+    el.addEventListener("playing", onReady);
+    el.addEventListener("canplay", onReady);
+    el.addEventListener("error", onError);
     el.play().catch(() => {});
-    return () => el.removeEventListener("loadedmetadata", onMeta);
-  }, [srcUrl, video.id]);
+    return () => {
+      window.clearTimeout(timeout);
+      el.removeEventListener("loadedmetadata", onMeta);
+      el.removeEventListener("playing", onReady);
+      el.removeEventListener("canplay", onReady);
+      el.removeEventListener("error", onError);
+    };
+  }, [srcUrl, video.id, reloadKey]);
 
   // When opening a video that is already saved, default the picker to the
   // quality it was saved at so "Cambiar calidad" starts from the real value.
@@ -218,6 +243,25 @@ export default function WatchView({
           <span className="watch__skip">⏭ Saltado: {skipFlash}</span>
         )}
         <video ref={videoRef} playsInline />
+        {loadState === "loading" && (
+          <div className="watch__stage-overlay">
+            <span className="spinner" /> Cargando video…
+          </div>
+        )}
+        {loadState === "error" && (
+          <div className="watch__stage-overlay">
+            <p>No se pudo cargar el video.</p>
+            <button
+              className="btn btn--accent"
+              onClick={() => {
+                setLoadState("loading");
+                setReloadKey((k) => k + 1);
+              }}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
       </div>
 
       <h1 className="watch__title">{video.title}</h1>

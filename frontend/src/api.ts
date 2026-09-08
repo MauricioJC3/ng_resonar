@@ -1,5 +1,9 @@
 import type {
+  Album,
+  AlbumCard,
   AppSettings,
+  Artist,
+  ArtistCard,
   AuthUser,
   BatchStatus,
   DownloadFormat,
@@ -77,6 +81,28 @@ export function search(q: string, type = "songs"): Promise<Track[]> {
     `/search?q=${encodeURIComponent(q)}&type=${type}`,
   ).then((r) => r.results);
 }
+
+export function searchArtists(q: string): Promise<ArtistCard[]> {
+  return getJSON<{ results: ArtistCard[] }>(
+    `/search?q=${encodeURIComponent(q)}&type=artists&limit=6`,
+  )
+    .then((r) => r.results)
+    .catch(() => []);
+}
+
+export function searchAlbums(q: string): Promise<AlbumCard[]> {
+  return getJSON<{ results: AlbumCard[] }>(
+    `/search?q=${encodeURIComponent(q)}&type=albums&limit=12`,
+  )
+    .then((r) => r.results)
+    .catch(() => []);
+}
+
+export const getAlbum = (browseId: string) =>
+  getJSON<Album>(`/album/${encodeURIComponent(browseId)}`);
+
+export const getArtist = (browseId: string) =>
+  getJSON<Artist>(`/artist/${encodeURIComponent(browseId)}`);
 
 export function suggest(q: string): Promise<string[]> {
   return getJSON<{ suggestions: string[] }>(`/suggest?q=${encodeURIComponent(q)}`)
@@ -274,14 +300,20 @@ export function recordPlay(
   }).catch(() => {});
 }
 
-export function getHistory(limit = 20): Promise<HistoryEntry[]> {
-  return getJSON<{ results: HistoryEntry[] }>(`/history?limit=${limit}`)
+export function getHistory(
+  limit = 20,
+  kind?: "song" | "video",
+): Promise<HistoryEntry[]> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (kind) q.set("kind", kind);
+  return getJSON<{ results: HistoryEntry[] }>(`/history?${q}`)
     .then((r) => r.results)
     .catch(() => []);
 }
 
-export function clearHistory(): Promise<void> {
-  return req(`/history`, { method: "DELETE" })
+export function clearHistory(kind?: "song" | "video"): Promise<void> {
+  const suffix = kind ? `?kind=${kind}` : "";
+  return req(`/history${suffix}`, { method: "DELETE" })
     .then(() => undefined)
     .catch(() => undefined);
 }

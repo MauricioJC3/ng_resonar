@@ -40,11 +40,12 @@ class HistoryBody(BaseModel):
 @router.get("/history")
 async def get_history(
     limit: int = Query(100, ge=1, le=800),
+    kind: Literal["song", "video"] | None = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
     results = await run_in_threadpool(
-        history.list_entries, db, user.id, limit
+        history.list_entries, db, user.id, limit, kind
     )
     return {"results": results}
 
@@ -62,8 +63,9 @@ async def post_history(
 
 @router.delete("/history")
 async def delete_history(
+    kind: Literal["song", "video"] | None = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    await run_in_threadpool(history.clear, db, user.id)
+    await run_in_threadpool(history.clear, db, user.id, kind)
     return {"ok": True}
