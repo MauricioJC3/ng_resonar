@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { type DragEvent, useState } from "react";
 
 import type { VideoItem } from "../types";
-import { useLibrary } from "../state/library";
+import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { useSavedVideos } from "../state/savedVideos";
 import { usePlayer } from "../state/player";
+import { hasTrackDrag, readTrackDrag } from "../lib/dnd";
 import TrackRow from "./TrackRow";
 import SavedVideoRow from "./SavedVideoRow";
 
@@ -13,12 +14,35 @@ export default function LibraryView({
   onWatch: (v: VideoItem) => void;
 }) {
   const [tab, setTab] = useState<"songs" | "videos">("songs");
+  const [dropActive, setDropActive] = useState(false);
   const songs = useLibrary();
   const videos = useSavedVideos();
   const { playList } = usePlayer();
 
+  const dropProps =
+    tab === "songs"
+      ? {
+          onDragOver: (e: DragEvent) => {
+            if (!hasTrackDrag(e)) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy" as const;
+            setDropActive(true);
+          },
+          onDragLeave: () => setDropActive(false),
+          onDrop: (e: DragEvent) => {
+            e.preventDefault();
+            setDropActive(false);
+            const track = readTrackDrag(e);
+            if (track && !isSaved(track.id, songs)) toggleLibrary(track);
+          },
+        }
+      : {};
+
   return (
-    <div className="view">
+    <div
+      className={"view" + (dropActive ? " view--drop" : "")}
+      {...dropProps}
+    >
       <h1 className="view__title">Biblioteca</h1>
 
       <div className="segmented">

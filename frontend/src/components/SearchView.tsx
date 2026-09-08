@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { homeMusic, search, searchAlbums, searchArtists } from "../api";
 import type { Track } from "../types";
 import { usePlayer } from "../state/player";
-import { setMusicSearch, useSearchStore } from "../state/search";
+import { musicHistoryGo, setMusicSearch, useSearchStore } from "../state/search";
+import { useListKeyboard } from "../lib/useListKeyboard";
 import Icon from "./Icon";
 import SearchBox from "./SearchBox";
 import TrackRow from "./TrackRow";
@@ -27,7 +28,7 @@ export default function SearchView({
     homeMusic().then(setHome);
   }, []);
 
-  async function run(term: string) {
+  async function run(term: string, push = true) {
     setStatus("loading");
     setError("");
     try {
@@ -36,12 +37,17 @@ export default function SearchView({
         searchArtists(term),
         searchAlbums(term),
       ]);
-      setMusicSearch({ query: term, songs, artists, albums });
+      setMusicSearch({ query: term, songs, artists, albums }, push);
       setStatus("idle");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error desconocido");
       setStatus("error");
     }
+  }
+
+  function stepHistory(delta: number) {
+    const term = musicHistoryGo(delta);
+    if (term) run(term, false);
   }
 
   const showHome = status === "empty" && home.length > 0;
@@ -52,13 +58,44 @@ export default function SearchView({
     music.artists.length === 0 &&
     music.albums.length === 0;
 
+  const { activeIndex, containerRef } = useListKeyboard(songs.length, (i) =>
+    playList(songs, i),
+  );
+
+  const canBack = music.cursor > 0;
+  const canForward = music.cursor < music.history.length - 1;
+
   return (
     <div className="view">
-      <SearchBox
-        autoFocus
-        placeholder="Buscar canciones, artistas, álbumes…"
-        onSubmit={run}
-      />
+      <div className="searchrow">
+        <div className="searchrow__nav">
+          <button
+            type="button"
+            aria-label="Búsqueda anterior"
+            title="Búsqueda anterior"
+            disabled={!canBack}
+            onClick={() => stepHistory(-1)}
+          >
+            <Icon name="back" size={16} />
+          </button>
+          <button
+            type="button"
+            className="searchrow__fwd"
+            aria-label="Búsqueda siguiente"
+            title="Búsqueda siguiente"
+            disabled={!canForward}
+            onClick={() => stepHistory(1)}
+          >
+            <Icon name="back" size={16} />
+          </button>
+        </div>
+        <SearchBox
+          autoFocus
+          placeholder="Buscar canciones, artistas, álbumes…"
+          onSubmit={run}
+          query={music.query}
+        />
+      </div>
 
       {status === "loading" && <p className="hint">Buscando…</p>}
       {status === "error" && (
@@ -133,12 +170,18 @@ export default function SearchView({
         <h2 className="view__subhead">Canciones</h2>
       )}
 
-      <div className="tracklist">
+      <div
+        className="tracklist"
+        ref={(el) => {
+          containerRef.current = el;
+        }}
+      >
         {songs.map((track, i) => (
           <TrackRow
             key={track.id + i}
             track={track}
             index={i}
+            selected={i === activeIndex}
             onPlay={() => playList(songs, i)}
           />
         ))}

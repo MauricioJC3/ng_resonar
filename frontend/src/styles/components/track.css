@@ -33,6 +33,16 @@
   background: var(--accent-wash);
 }
 
+/* Highlighted by keyboard list navigation (Arrow keys + Enter). */
+.track--selected {
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.track--selected.track--active {
+  background: var(--accent-wash);
+}
+
 .track__index {
   display: flex;
   align-items: center;

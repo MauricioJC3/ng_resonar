@@ -1,5 +1,8 @@
+import { useState } from "react";
+
 import type { View } from "../App";
-import { useLibrary } from "../state/library";
+import { isSaved, toggleLibrary, useLibrary } from "../state/library";
+import { hasTrackDrag, readTrackDrag } from "../lib/dnd";
 import Icon from "./Icon";
 
 const NAV: { id: View; label: string; icon: string }[] = [
@@ -22,6 +25,7 @@ export default function Nav({
   onLogout?: () => void;
 }) {
   const library = useLibrary();
+  const [dropActive, setDropActive] = useState(false);
 
   return (
     <nav className="nav" aria-label="Navegación principal">
@@ -35,13 +39,44 @@ export default function Nav({
       <div className="nav__items">
         {NAV.map((item) => {
           const active = view === item.id;
+          const isLibrary = item.id === "library";
           return (
             <button
               key={item.id}
-              className={"nav__item" + (active ? " is-active" : "")}
+              className={
+                "nav__item" +
+                (active ? " is-active" : "") +
+                (isLibrary && dropActive ? " nav__item--drop" : "")
+              }
               onClick={() => onNavigate(item.id)}
               aria-current={active ? "page" : undefined}
-              title={item.label}
+              title={
+                isLibrary
+                  ? "Biblioteca — suelta una canción aquí para guardarla"
+                  : item.label
+              }
+              onDragOver={
+                isLibrary
+                  ? (e) => {
+                      if (!hasTrackDrag(e)) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "copy";
+                      setDropActive(true);
+                    }
+                  : undefined
+              }
+              onDragLeave={isLibrary ? () => setDropActive(false) : undefined}
+              onDrop={
+                isLibrary
+                  ? (e) => {
+                      e.preventDefault();
+                      setDropActive(false);
+                      const track = readTrackDrag(e);
+                      if (track && !isSaved(track.id, library))
+                        toggleLibrary(track);
+                    }
+                  : undefined
+              }
             >
               <Icon name={item.icon} size={18} />
               <span className="nav__label">{item.label}</span>

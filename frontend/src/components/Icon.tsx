@@ -145,6 +145,16 @@ const PATHS: Record<string, ReactElement> = {
   ),
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronUp: <path d="m6 15 6-6 6 6" />,
+  grip: (
+    <>
+      <circle cx="9" cy="6" r="1" />
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="9" cy="18" r="1" />
+      <circle cx="15" cy="6" r="1" />
+      <circle cx="15" cy="12" r="1" />
+      <circle cx="15" cy="18" r="1" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />
@@ -160,7 +170,7 @@ const PATHS: Record<string, ReactElement> = {
   ),
 };
 
-const FILLED = new Set(["play", "pause", "skipBack", "skipForward"]);
+const FILLED = new Set(["play", "pause", "skipBack", "skipForward", "grip"]);
 
 export default function Icon({
   name,

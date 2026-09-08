@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getAlbum } from "../api";
 import type { Album } from "../types";
 import { usePlayer } from "../state/player";
+import { useListKeyboard } from "../lib/useListKeyboard";
 import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 
@@ -16,6 +17,12 @@ export default function AlbumView({
   const [album, setAlbum] = useState<Album | null>(null);
   const [failed, setFailed] = useState(false);
   const { playList } = usePlayer();
+
+  const tracks = album?.tracks ?? [];
+  const { activeIndex, containerRef } = useListKeyboard(
+    tracks.length,
+    (i) => playList(tracks, i),
+  );
 
   useEffect(() => {
     let alive = true;
@@ -83,12 +90,18 @@ export default function AlbumView({
               <p>No se encontraron pistas para este álbum.</p>
             </div>
           ) : (
-            <div className="tracklist">
+            <div
+              className="tracklist"
+              ref={(el) => {
+                containerRef.current = el;
+              }}
+            >
               {album.tracks.map((track, i) => (
                 <TrackRow
                   key={track.id + i}
                   track={track}
                   index={i}
+                  selected={i === activeIndex}
                   onPlay={() => playList(album.tracks, i)}
                 />
               ))}

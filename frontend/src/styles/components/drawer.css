@@ -74,6 +74,25 @@
   background: var(--accent-wash);
 }
 
+.qrow--dragging {
+  opacity: 0.4;
+}
+
+.qrow--over {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.qrow__grip {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  cursor: grab;
+}
+
+.qrow__grip:active {
+  cursor: grabbing;
+}
+
 .qrow__main {
   display: flex;
   align-items: center;

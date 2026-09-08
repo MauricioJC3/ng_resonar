@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { getArtist } from "../api";
 import type { AlbumCard, Artist } from "../types";
 import { usePlayer } from "../state/player";
+import { useListKeyboard } from "../lib/useListKeyboard";
 import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 
-const TOP_SONGS = 8;
+const TOP_SONGS = 10;
 
 export default function ArtistView({
   browseId,
@@ -21,6 +22,18 @@ export default function ArtistView({
   const [failed, setFailed] = useState(false);
   const [allSongs, setAllSongs] = useState(false);
   const { playList } = usePlayer();
+
+  const shownSongs = artist
+    ? allSongs
+      ? artist.topSongs
+      : artist.topSongs.slice(0, TOP_SONGS)
+    : [];
+  const { activeIndex, containerRef } = useListKeyboard(
+    shownSongs.length,
+    (i) => {
+      if (artist) playList(artist.topSongs, i);
+    },
+  );
 
   useEffect(() => {
     let alive = true;
@@ -104,15 +117,18 @@ export default function ArtistView({
           {artist.topSongs.length > 0 && (
             <>
               <h2 className="view__subhead">Populares</h2>
-              <div className="tracklist">
-                {(allSongs
-                  ? artist.topSongs
-                  : artist.topSongs.slice(0, TOP_SONGS)
-                ).map((track, i) => (
+              <div
+                className="tracklist"
+                ref={(el) => {
+                  containerRef.current = el;
+                }}
+              >
+                {shownSongs.map((track, i) => (
                   <TrackRow
                     key={track.id + i}
                     track={track}
                     index={i}
+                    selected={i === activeIndex}
                     onPlay={() => playList(artist.topSongs, i)}
                   />
                 ))}

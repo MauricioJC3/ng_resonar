@@ -14,7 +14,10 @@ import ArtistView from "./components/ArtistView";
 import SettingsView from "./components/SettingsView";
 import WatchView from "./components/WatchView";
 import PlayerBar from "./components/PlayerBar";
+import MiniVideo from "./components/MiniVideo";
+import ScrollTop from "./components/ScrollTop";
 import { PlayerProvider } from "./state/player";
+import { VideoProvider } from "./state/video";
 import type { View } from "./App";
 import type { AuthUser, VideoItem } from "./types";
 
@@ -66,6 +69,8 @@ export default function AuthedApp({
   const [openArtist, setOpenArtist] = useState<string | null>(
     DEFAULT_STATE.openArtist,
   );
+
+  const mainRef = useRef<HTMLElement>(null);
 
   // Apply a resolved navigation state to the setters. No history writes.
   const applyState = useCallback((s: NavState) => {
@@ -213,11 +218,17 @@ export default function AuthedApp({
 
   return (
     <PlayerProvider>
-      <div className="app">
-        <Nav view={view} onNavigate={navigate} onLogout={onLogout} />
-        <main className="main">{content}</main>
-        <PlayerBar />
-      </div>
+      <VideoProvider>
+        <div className="app">
+          <Nav view={view} onNavigate={navigate} onLogout={onLogout} />
+          <main className="main" ref={mainRef}>
+            {content}
+          </main>
+          <PlayerBar />
+          <MiniVideo hidden={!!watching} onExpand={watch} />
+          <ScrollTop scrollRef={mainRef} />
+        </div>
+      </VideoProvider>
     </PlayerProvider>
   );
 }

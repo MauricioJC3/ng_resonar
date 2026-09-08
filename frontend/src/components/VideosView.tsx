@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 
 import { searchVideos, trendingVideos, videoInfo } from "../api";
 import type { VideoItem } from "../types";
-import { setVideoSearch, useSearchStore } from "../state/search";
+import { setVideoSearch, useSearchStore, videoHistoryGo } from "../state/search";
 import { extractYouTubeId } from "../lib/youtube";
+import Icon from "./Icon";
 import SearchBox from "./SearchBox";
 import VideoCard from "./VideoCard";
 
@@ -24,7 +25,7 @@ export default function VideosView({
     trendingVideos().then(setTrending);
   }, []);
 
-  async function run(term: string) {
+  async function run(term: string, push = true) {
     const id = extractYouTubeId(term);
     if (id) {
       setStatus("loading");
@@ -45,7 +46,7 @@ export default function VideosView({
     setError("");
     try {
       const results = await searchVideos(term);
-      setVideoSearch({ query: term, results });
+      setVideoSearch({ query: term, results }, push);
       setStatus("idle");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error desconocido");
@@ -53,16 +54,47 @@ export default function VideosView({
     }
   }
 
+  function stepHistory(delta: number) {
+    const term = videoHistoryGo(delta);
+    if (term) run(term, false);
+  }
+
   const results = video.results;
   const showTrending = status === "empty" && trending.length > 0;
+  const canBack = video.cursor > 0;
+  const canForward = video.cursor < video.history.length - 1;
 
   return (
     <div className="view">
-      <SearchBox
-        autoFocus
-        placeholder="Buscar en YouTube o pegar un enlace…"
-        onSubmit={run}
-      />
+      <div className="searchrow">
+        <div className="searchrow__nav">
+          <button
+            type="button"
+            aria-label="Búsqueda anterior"
+            title="Búsqueda anterior"
+            disabled={!canBack}
+            onClick={() => stepHistory(-1)}
+          >
+            <Icon name="back" size={16} />
+          </button>
+          <button
+            type="button"
+            className="searchrow__fwd"
+            aria-label="Búsqueda siguiente"
+            title="Búsqueda siguiente"
+            disabled={!canForward}
+            onClick={() => stepHistory(1)}
+          >
+            <Icon name="back" size={16} />
+          </button>
+        </div>
+        <SearchBox
+          autoFocus
+          placeholder="Buscar en YouTube o pegar un enlace…"
+          onSubmit={run}
+          query={video.query}
+        />
+      </div>
 
       {status === "loading" && <p className="hint">Cargando…</p>}
       {status === "error" && (

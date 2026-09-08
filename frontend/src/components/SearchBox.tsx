@@ -16,18 +16,32 @@ export default function SearchBox({
   placeholder,
   onSubmit,
   autoFocus,
+  query,
 }: {
   placeholder: string;
   onSubmit: (term: string) => void;
   autoFocus?: boolean;
+  /** External query to reflect in the box (e.g. when stepping through search history). */
+  query?: string;
 }) {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(query ?? "");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const debounce = useRef<number>();
   const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
+
+  // Keep the visible text in sync when the parent drives the query (history nav).
+  useEffect(() => {
+    if (query !== undefined) {
+      setQ(query);
+      setOpen(false);
+      setSuggestions([]);
+      setActive(-1);
+    }
+  }, [query]);
 
   useEffect(() => {
     const term = q.trim();
@@ -64,6 +78,8 @@ export default function SearchBox({
     setOpen(false);
     setSuggestions([]);
     setActive(-1);
+    // Drop focus so the results list can take over the arrow keys.
+    inputRef.current?.blur();
     onSubmit(t);
   }
 
@@ -105,6 +121,7 @@ export default function SearchBox({
         <Icon name="search" size={18} />
       </span>
       <input
+        ref={inputRef}
         autoFocus={autoFocus}
         placeholder={placeholder}
         value={q}

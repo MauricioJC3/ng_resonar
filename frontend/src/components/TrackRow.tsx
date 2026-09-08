@@ -5,6 +5,7 @@ import type { DownloadFormat, Track } from "../types";
 import { toggleLibrary, useLibrary, isSaved } from "../state/library";
 import { addToPlaylist, createPlaylist, usePlaylists } from "../state/playlists";
 import { usePlayer } from "../state/player";
+import { setTrackDrag } from "../lib/dnd";
 import Icon from "./Icon";
 
 const FORMATS: DownloadFormat[] = ["mp3", "m4a", "opus", "flac"];
@@ -13,10 +14,13 @@ export default function TrackRow({
   track,
   index,
   onPlay,
+  selected = false,
 }: {
   track: Track;
   index: number;
   onPlay: () => void;
+  /** Highlighted by keyboard list navigation. */
+  selected?: boolean;
 }) {
   const { current } = usePlayer();
   const library = useLibrary();
@@ -40,7 +44,16 @@ export default function TrackRow({
   }
 
   return (
-    <div className={"track" + (active ? " track--active" : "")}>
+    <div
+      className={
+        "track" +
+        (active ? " track--active" : "") +
+        (selected ? " track--selected" : "")
+      }
+      aria-selected={selected || undefined}
+      draggable
+      onDragStart={(e) => setTrackDrag(e, track)}
+    >
       <span className="track__index">
         {active ? (
           <span className="eq" aria-label="Sonando">
