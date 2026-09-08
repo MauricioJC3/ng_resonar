@@ -34,6 +34,8 @@ type VideoSearch = VideoResults & History<VideoResults>;
 interface SearchState {
   music: MusicSearch;
   video: VideoSearch;
+  /** A query the shell asked the Search view to run (e.g. "go to artist" fallback). */
+  pending: string | null;
 }
 
 const EMPTY_MUSIC: MusicResults = { query: "", songs: [], artists: [], albums: [] };
@@ -42,6 +44,7 @@ const EMPTY_VIDEO: VideoResults = { query: "", results: [] };
 const EMPTY: SearchState = {
   music: { ...EMPTY_MUSIC, history: [], cursor: -1 },
   video: { ...EMPTY_VIDEO, history: [], cursor: -1 },
+  pending: null,
 };
 
 let snapshot: SearchState = EMPTY;
@@ -114,6 +117,21 @@ export function videoHistoryGo(delta: number): VideoResults | null {
   snapshot = { ...snapshot, video: { ...entry, history, cursor: next } };
   emit();
   return entry;
+}
+
+/** Ask the Search view to run `query` (used by the "go to artist" fallback). */
+export function requestSearch(query: string) {
+  const q = query.trim();
+  if (!q) return;
+  snapshot = { ...snapshot, pending: q };
+  emit();
+}
+
+/** The Search view calls this once it has picked up the pending query. */
+export function clearPendingSearch() {
+  if (snapshot.pending === null) return;
+  snapshot = { ...snapshot, pending: null };
+  emit();
 }
 
 export function resetSearch() {

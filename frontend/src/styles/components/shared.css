@@ -7,6 +7,22 @@
   border-radius: 12px;
 }
 
+/* Clickable artist name (inside a track row / the player / the queue). */
+.artistlink {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.artistlink:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.artistlink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .hint {
   color: var(--text-dim);
   font-size: 14px;

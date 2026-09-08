@@ -180,6 +180,16 @@
   box-shadow: var(--shadow);
 }
 
+/* Portalled to <body> and positioned from JS (left/bottom inline); its right
+   edge sits at the trigger button so it never gets clipped by a scroll box. */
+.track__menu--float {
+  position: fixed;
+  right: auto;
+  transform: translateX(-100%);
+  z-index: 250;
+  animation: sheet-in var(--dur-fast) var(--ease-emphasized);
+}
+
 .track__menu a,
 .track__menu button {
   display: block;

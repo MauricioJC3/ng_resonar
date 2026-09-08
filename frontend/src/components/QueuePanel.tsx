@@ -3,6 +3,8 @@ import { useState } from "react";
 import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { usePlayer } from "../state/player";
 import { setTrackDrag } from "../lib/dnd";
+import AddToPlaylistButton from "./AddToPlaylistButton";
+import ArtistLinks from "./ArtistLinks";
 import Icon from "./Icon";
 
 export default function QueuePanel({
@@ -95,10 +97,13 @@ export default function QueuePanel({
                 <img src={track.thumbnail ?? ""} alt="" loading="lazy" />
                 <span className="qrow__text">
                   <span className="qrow__title">{track.title}</span>
-                  <span className="qrow__artist">{track.artists.join(", ")}</span>
+                  <span className="qrow__artist">
+                    <ArtistLinks artists={track.artists} />
+                  </span>
                 </span>
               </button>
               <div className="qrow__ctl">
+                <AddToPlaylistButton track={track} className="" size={13} />
                 <button
                   className={isSaved(track.id, library) ? "is-on" : ""}
                   onClick={() => toggleLibrary(track)}

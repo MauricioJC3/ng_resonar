@@ -18,6 +18,8 @@ import MiniVideo from "./components/MiniVideo";
 import ScrollTop from "./components/ScrollTop";
 import { PlayerProvider } from "./state/player";
 import { VideoProvider } from "./state/video";
+import { registerAppNav } from "./state/appNav";
+import { requestSearch } from "./state/search";
 import type { View } from "./App";
 import type { AuthUser, VideoItem } from "./types";
 
@@ -175,6 +177,24 @@ export default function AuthedApp({
   const openArtistDetail = useCallback(
     (id: string) => go({ ...DEFAULT_STATE, view: "search", openArtist: id }),
     [go],
+  );
+
+  const openSearchQuery = useCallback(
+    (q: string) => {
+      requestSearch(q);
+      go({ ...DEFAULT_STATE, view: "search" });
+    },
+    [go],
+  );
+
+  // Let deep components (track rows, player bar, queue) jump to an artist.
+  useEffect(
+    () =>
+      registerAppNav({
+        openArtist: openArtistDetail,
+        openSearch: openSearchQuery,
+      }),
+    [openArtistDetail, openSearchQuery],
   );
 
   // Overlays close by walking history back so the Back gesture stays consistent.

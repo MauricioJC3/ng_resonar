@@ -16,6 +16,8 @@ import { usePlayer } from "../state/player";
 import { claimPlayback, isVideoActive, onPlaybackClaim } from "../state/mediabus";
 import { registerSeeker, setNowPlaying } from "../state/nowPlaying";
 import { scrobblingOn } from "../state/settings";
+import AddToPlaylistButton from "./AddToPlaylistButton";
+import ArtistLinks from "./ArtistLinks";
 import Icon from "./Icon";
 import QueuePanel from "./QueuePanel";
 import LyricsPanel from "./LyricsPanel";
@@ -404,7 +406,11 @@ export default function PlayerBar() {
               {current?.title ?? "Nada sonando"}
             </span>
             <span className="player__artist">
-              {current?.artists.join(", ") ?? "Elige una canción"}
+              {current ? (
+                <ArtistLinks artists={current.artists} />
+              ) : (
+                "Elige una canción"
+              )}
             </span>
           </div>
         </button>
@@ -442,6 +448,13 @@ export default function PlayerBar() {
               filled={!!current && isSaved(current.id, library)}
             />
           </button>
+          {current && (
+            <AddToPlaylistButton
+              track={current}
+              className="player__toggle"
+              size={16}
+            />
+          )}
           <button
             className={"player__toggle" + (leveled ? " is-on" : "")}
             onClick={toggleLevel}

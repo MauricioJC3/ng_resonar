@@ -3,9 +3,10 @@ import { useState } from "react";
 import { downloadUrl } from "../api";
 import type { DownloadFormat, Track } from "../types";
 import { toggleLibrary, useLibrary, isSaved } from "../state/library";
-import { addToPlaylist, createPlaylist, usePlaylists } from "../state/playlists";
 import { usePlayer } from "../state/player";
 import { setTrackDrag } from "../lib/dnd";
+import AddToPlaylistButton from "./AddToPlaylistButton";
+import ArtistLinks from "./ArtistLinks";
 import Icon from "./Icon";
 
 const FORMATS: DownloadFormat[] = ["mp3", "m4a", "opus", "flac"];
@@ -24,8 +25,7 @@ export default function TrackRow({
 }) {
   const { current, enqueue } = usePlayer();
   const library = useLibrary();
-  const playlists = usePlaylists();
-  const [menu, setMenu] = useState<null | "dl" | "pl">(null);
+  const [menu, setMenu] = useState<null | "dl">(null);
   const [queued, setQueued] = useState(false);
 
   const active = current?.id === track.id;
@@ -35,19 +35,6 @@ export default function TrackRow({
     enqueue(track);
     setQueued(true);
     window.setTimeout(() => setQueued(false), 1200);
-  }
-
-  async function addTo(id: string) {
-    setMenu(null);
-    await addToPlaylist(id, track);
-  }
-
-  async function addToNew() {
-    setMenu(null);
-    const name = window.prompt("Nombre de la nueva playlist");
-    if (!name) return;
-    const pl = await createPlaylist(name);
-    await addToPlaylist(pl.id, track);
   }
 
   return (
@@ -82,7 +69,9 @@ export default function TrackRow({
         </span>
         <span className="track__info">
           <span className="track__title">{track.title}</span>
-          <span className="track__artist">{track.artists.join(", ")}</span>
+          <span className="track__artist">
+            <ArtistLinks artists={track.artists} />
+          </span>
         </span>
       </button>
 
@@ -107,31 +96,7 @@ export default function TrackRow({
           <Icon name={queued ? "check" : "queue"} size={16} />
         </button>
 
-        <div className="track__dl">
-          <button
-            className="track__icon"
-            title="Añadir a playlist"
-            onClick={() => setMenu((m) => (m === "pl" ? null : "pl"))}
-            onBlur={() => window.setTimeout(() => setMenu(null), 160)}
-          >
-            <Icon name="plus" size={16} />
-          </button>
-          {menu === "pl" && (
-            <ul className="track__menu track__menu--wide">
-              {playlists.length === 0 && (
-                <li className="track__menu-empty">Sin playlists</li>
-              )}
-              {playlists.map((p) => (
-                <li key={p.id}>
-                  <button onMouseDown={() => addTo(p.id)}>{p.name}</button>
-                </li>
-              ))}
-              <li className="track__menu-sep">
-                <button onMouseDown={addToNew}>＋ Nueva playlist…</button>
-              </li>
-            </ul>
-          )}
-        </div>
+        <AddToPlaylistButton track={track} />
 
         <div className="track__dl">
           <button

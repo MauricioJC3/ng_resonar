@@ -3,7 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { homeMusic, search, searchAlbums, searchArtists } from "../api";
 import type { Track } from "../types";
 import { usePlayer } from "../state/player";
-import { musicHistoryGo, setMusicSearch, useSearchStore } from "../state/search";
+import {
+  clearPendingSearch,
+  musicHistoryGo,
+  setMusicSearch,
+  useSearchStore,
+} from "../state/search";
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { swapWithTransition } from "../lib/viewTransition";
 import Icon from "./Icon";
@@ -17,7 +22,7 @@ export default function SearchView({
   onOpenArtist: (browseId: string) => void;
   onOpenAlbum: (browseId: string) => void;
 }) {
-  const { music } = useSearchStore();
+  const { music, pending } = useSearchStore();
   const [home, setHome] = useState<Track[]>([]);
   const [status, setStatus] = useState<"empty" | "loading" | "idle" | "error">(
     music.query ? "idle" : "empty",
@@ -29,6 +34,14 @@ export default function SearchView({
   useEffect(() => {
     homeMusic().then(setHome);
   }, []);
+
+  // A "go to artist" that couldn't resolve a page lands here with a pending query.
+  useEffect(() => {
+    if (!pending) return;
+    clearPendingSearch();
+    run(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending]);
 
   async function run(term: string) {
     setStatus("loading");
