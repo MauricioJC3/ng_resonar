@@ -8,6 +8,7 @@ const NAV: { id: View; label: string; icon: string }[] = [
   { id: "videos", label: "Videos", icon: "video" },
   { id: "playlists", label: "Playlists", icon: "list" },
   { id: "library", label: "Biblioteca", icon: "heart" },
+  { id: "history", label: "Historial", icon: "history" },
   { id: "settings", label: "Ajustes", icon: "settings" },
 ];
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { searchVideos, trendingVideos, videoInfo } from "../api";
 import type { VideoItem } from "../types";
+import { setVideoSearch, useSearchStore } from "../state/search";
 import { extractYouTubeId } from "../lib/youtube";
 import SearchBox from "./SearchBox";
 import VideoCard from "./VideoCard";
@@ -11,11 +12,12 @@ export default function VideosView({
 }: {
   onWatch: (v: VideoItem) => void;
 }) {
-  const [results, setResults] = useState<VideoItem[]>([]);
+  const { video } = useSearchStore();
   const [trending, setTrending] = useState<VideoItem[]>([]);
-  const [status, setStatus] = useState<"empty" | "loading" | "idle" | "error">(
-    "empty",
-  );
+  // Seed from the cached search so returning from a video restores the list.
+  const [status, setStatus] = useState<
+    "empty" | "loading" | "idle" | "error"
+  >(video.query ? "idle" : "empty");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function VideosView({
       setError("");
       try {
         onWatch(await videoInfo(id));
-        setStatus("empty");
+        setStatus(video.query ? "idle" : "empty");
       } catch {
         onWatch({
           id,
@@ -42,7 +44,8 @@ export default function VideosView({
     setStatus("loading");
     setError("");
     try {
-      setResults(await searchVideos(term));
+      const results = await searchVideos(term);
+      setVideoSearch({ query: term, results });
       setStatus("idle");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error desconocido");
@@ -50,6 +53,7 @@ export default function VideosView({
     }
   }
 
+  const results = video.results;
   const showTrending = status === "empty" && trending.length > 0;
 
   return (

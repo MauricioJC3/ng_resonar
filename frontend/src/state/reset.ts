@@ -2,6 +2,7 @@ import { reset as resetLibrary } from "./library";
 import { resetPlayerQueue } from "./player";
 import { reset as resetPlaylists } from "./playlists";
 import { reset as resetSavedVideos } from "./savedVideos";
+import { reset as resetSearch } from "./search";
 import { reset as resetSettings } from "./settings";
 
 /**
@@ -13,6 +14,7 @@ export function resetStores() {
   resetLibrary();
   resetPlaylists();
   resetSavedVideos();
+  resetSearch();
   resetSettings();
   resetPlayerQueue();
 }

@@ -83,24 +83,25 @@ def add(db: Session, user_id: int, entry: dict) -> History:
 
 
 def list_(
-    db: Session, user_id: int, limit: int | None = None
+    db: Session,
+    user_id: int,
+    limit: int | None = None,
+    kind: str | None = None,
 ) -> list[History]:
-    stmt = (
-        select(History)
-        .where(History.user_id == user_id)
-        .order_by(History.played_at.desc(), History.id.desc())
-    )
+    stmt = select(History).where(History.user_id == user_id)
+    if kind:
+        stmt = stmt.where(History.kind == kind)
+    stmt = stmt.order_by(History.played_at.desc(), History.id.desc())
     if limit:
         stmt = stmt.limit(limit)
     return list(db.execute(stmt).scalars().all())
 
 
-def clear_(db: Session, user_id: int) -> None:
-    db.execute(
-        delete(History)
-        .where(History.user_id == user_id)
-        .execution_options(synchronize_session=False)
-    )
+def clear_(db: Session, user_id: int, kind: str | None = None) -> None:
+    stmt = delete(History).where(History.user_id == user_id)
+    if kind:
+        stmt = stmt.where(History.kind == kind)
+    db.execute(stmt.execution_options(synchronize_session=False))
 
 
 def count(db: Session, user_id: int) -> int:

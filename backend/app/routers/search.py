@@ -59,3 +59,29 @@ async def home():
     results = await ytmusic.home()
     await cache.set("home:music", results, 1800)
     return {"results": results}
+
+
+@router.get("/album/{browse_id}")
+async def album(browse_id: str):
+    cache = get_cache()
+    key = f"album:{browse_id}"
+    hit = await cache.get(key)
+    if hit is not None:
+        return hit
+    data = await ytmusic.album(browse_id)
+    if data.get("tracks"):
+        await cache.set(key, data, 3600)
+    return data
+
+
+@router.get("/artist/{browse_id}")
+async def artist(browse_id: str):
+    cache = get_cache()
+    key = f"artist:{browse_id}"
+    hit = await cache.get(key)
+    if hit is not None:
+        return hit
+    data = await ytmusic.artist(browse_id)
+    if data.get("name"):
+        await cache.set(key, data, 3600)
+    return data

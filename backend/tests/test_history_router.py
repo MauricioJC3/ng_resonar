@@ -45,6 +45,38 @@ def test_consecutive_repeat_yields_one_entry_with_play_count_two(api, as_user, d
     assert results[0]["playCount"] == 2
 
 
+def test_kind_filter_splits_songs_and_videos(api, as_user, db_reset):
+    as_user("alice")
+    api.post("/api/history", json={"videoId": "s1", "title": "Song 1", "kind": "song"})
+    api.post("/api/history", json={"videoId": "v1", "title": "Video 1", "kind": "video"})
+    api.post("/api/history", json={"videoId": "s2", "title": "Song 2", "kind": "song"})
+
+    songs = api.get("/api/history", params={"kind": "song"}).json()["results"]
+    assert [e["videoId"] for e in songs] == ["s2", "s1"]
+
+    videos = api.get("/api/history", params={"kind": "video"}).json()["results"]
+    assert [e["videoId"] for e in videos] == ["v1"]
+
+    all_ = api.get("/api/history").json()["results"]
+    assert {e["videoId"] for e in all_} == {"s1", "s2", "v1"}
+
+
+def test_delete_with_kind_only_clears_that_kind(api, as_user, db_reset):
+    as_user("alice")
+    api.post("/api/history", json={"videoId": "s1", "title": "S", "kind": "song"})
+    api.post("/api/history", json={"videoId": "v1", "title": "V", "kind": "video"})
+
+    assert api.delete("/api/history", params={"kind": "video"}).json() == {"ok": True}
+
+    remaining = api.get("/api/history").json()["results"]
+    assert [e["videoId"] for e in remaining] == ["s1"]
+
+
+def test_bad_kind_is_rejected(api, as_user, db_reset):
+    as_user("alice")
+    assert api.get("/api/history", params={"kind": "podcast"}).status_code == 422
+
+
 def test_delete_empties_only_the_callers_history(api, as_user, db_reset):
     as_user("alice")
     api.post("/api/history", json={"videoId": "a", "title": "A"})
