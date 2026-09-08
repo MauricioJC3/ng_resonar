@@ -20,12 +20,14 @@ export default function VideosView({
     "empty" | "loading" | "idle" | "error"
   >(video.query ? "idle" : "empty");
   const [error, setError] = useState("");
+  const [navDir, setNavDir] = useState<"" | "back" | "fwd">("");
 
   useEffect(() => {
     trendingVideos().then(setTrending);
   }, []);
 
   async function run(term: string, push = true) {
+    if (push) setNavDir("");
     const id = extractYouTubeId(term);
     if (id) {
       setStatus("loading");
@@ -56,7 +58,9 @@ export default function VideosView({
 
   function stepHistory(delta: number) {
     const term = videoHistoryGo(delta);
-    if (term) run(term, false);
+    if (!term) return;
+    setNavDir(delta < 0 ? "back" : "fwd");
+    run(term, false);
   }
 
   const results = video.results;
@@ -75,7 +79,7 @@ export default function VideosView({
             disabled={!canBack}
             onClick={() => stepHistory(-1)}
           >
-            <Icon name="back" size={16} />
+            <Icon name="back" size={18} />
           </button>
           <button
             type="button"
@@ -85,7 +89,7 @@ export default function VideosView({
             disabled={!canForward}
             onClick={() => stepHistory(1)}
           >
-            <Icon name="back" size={16} />
+            <Icon name="back" size={18} />
           </button>
         </div>
         <SearchBox
@@ -114,10 +118,17 @@ export default function VideosView({
 
       {showTrending && <h2 className="view__subhead">En tendencia</h2>}
 
-      <div className="videogrid">
-        {(status === "empty" ? trending : results).map((v) => (
-          <VideoCard key={v.id} video={v} onClick={() => onWatch(v)} />
-        ))}
+      <div
+        className={
+          "searchresults" + (navDir ? ` searchresults--${navDir}` : "")
+        }
+        key={`${video.cursor}|${video.query}`}
+      >
+        <div className="videogrid">
+          {(status === "empty" ? trending : results).map((v) => (
+            <VideoCard key={v.id} video={v} onClick={() => onWatch(v)} />
+          ))}
+        </div>
       </div>
     </div>
   );
