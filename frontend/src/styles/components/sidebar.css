@@ -8,6 +8,7 @@
   display: flex;
   flex-direction: column;
   gap: 30px;
+  overflow: hidden;
 }
 
 .nav__brand {
@@ -19,6 +20,79 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   padding-left: 10px;
+}
+
+.nav__collapse {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-faint);
+  transition:
+    color var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard);
+}
+
+.nav__collapse:hover {
+  color: var(--text);
+  background: var(--bg-elev-2);
+}
+
+/* ---------- Collapsed rail (icons only) — desktop rail only ---------- */
+@media (min-width: 860px) {
+  .nav--collapsed {
+    padding: 30px 12px;
+    align-items: center;
+  }
+
+  .nav--collapsed .nav__label {
+    display: none;
+  }
+
+  .nav--collapsed .nav__note {
+    display: none;
+  }
+
+  .nav--collapsed .nav__brand {
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 0;
+  }
+
+  .nav--collapsed .nav__collapse {
+    margin-left: 0;
+  }
+
+  .nav--collapsed .nav__items {
+    align-self: stretch;
+  }
+
+  .nav--collapsed .nav__item {
+    position: relative;
+    justify-content: center;
+    gap: 0;
+    padding: 11px 0;
+  }
+
+  .nav--collapsed .nav__count {
+    position: absolute;
+    top: 3px;
+    right: 6px;
+    margin-left: 0;
+    padding: 0 5px;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .nav--collapsed .nav__logout {
+    align-self: center;
+    padding: 10px;
+  }
 }
 
 .nav__logo {

@@ -146,6 +146,12 @@ const PATHS: Record<string, ReactElement> = {
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronUp: <path d="m6 15 6-6 6 6" />,
   check: <path d="M20 6 9 17l-5-5" />,
+  sidebar: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16" />
+    </>
+  ),
   shuffle: (
     <>
       <path d="M16 3h5v5" />

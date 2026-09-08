@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { View } from "../App";
 import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { hasTrackDrag, readTrackDrag } from "../lib/dnd";
 import Icon from "./Icon";
+
+const COLLAPSE_KEY = "resonar:navcollapsed";
 
 const NAV: { id: View; label: string; icon: string }[] = [
   { id: "home", label: "Inicio", icon: "home" },
@@ -26,14 +28,42 @@ export default function Nav({
 }) {
   const library = useLibrary();
   const [dropActive, setDropActive] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [collapsed]);
 
   return (
-    <nav className="nav" aria-label="Navegación principal">
+    <nav
+      className={"nav" + (collapsed ? " nav--collapsed" : "")}
+      aria-label="Navegación principal"
+    >
       <div className="nav__brand">
         <span className="nav__logo" aria-hidden>
           ◈
         </span>
         <span className="nav__label">Resonar</span>
+        <button
+          type="button"
+          className="nav__collapse"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? "Expandir el menú" : "Recoger el menú"}
+          aria-pressed={collapsed}
+          title={collapsed ? "Expandir el menú" : "Recoger el menú"}
+        >
+          <Icon name="sidebar" size={17} />
+        </button>
       </div>
 
       <div className="nav__items">
