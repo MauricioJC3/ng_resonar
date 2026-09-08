@@ -1,6 +1,9 @@
+import { useState } from "react";
+
 import { downloadUrl } from "../api";
 import type { Track } from "../types";
 import { usePlayer } from "../state/player";
+import ArtistLinks from "./ArtistLinks";
 import Icon from "./Icon";
 
 export default function PlaylistTrackRow({
@@ -18,8 +21,15 @@ export default function PlaylistTrackRow({
   onUp?: () => void;
   onDown?: () => void;
 }) {
-  const { current } = usePlayer();
+  const { current, enqueue } = usePlayer();
   const active = current?.id === track.id;
+  const [queued, setQueued] = useState(false);
+
+  function addToQueue() {
+    enqueue(track);
+    setQueued(true);
+    window.setTimeout(() => setQueued(false), 1200);
+  }
 
   return (
     <div className={"track" + (active ? " track--active" : "")}>
@@ -44,7 +54,9 @@ export default function PlaylistTrackRow({
         </span>
         <span className="track__info">
           <span className="track__title">{track.title}</span>
-          <span className="track__artist">{track.artists.join(", ")}</span>
+          <span className="track__artist">
+            <ArtistLinks artists={track.artists} />
+          </span>
         </span>
       </button>
 
@@ -52,6 +64,14 @@ export default function PlaylistTrackRow({
       <span className="track__dur">{track.duration}</span>
 
       <div className="track__actions">
+        <button
+          className={"track__icon" + (queued ? " is-on" : "")}
+          title={queued ? "Añadida a la cola" : "Añadir a la cola"}
+          aria-label="Añadir a la cola"
+          onClick={addToQueue}
+        >
+          <Icon name={queued ? "check" : "queue"} size={16} />
+        </button>
         <button
           className="track__icon"
           title="Subir"

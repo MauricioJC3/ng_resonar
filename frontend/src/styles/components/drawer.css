@@ -1,5 +1,6 @@
-/* ---------- Queue drawer ---------- */
+/* ---------- Queue panel (docked, opens/collapses like the nav rail) ---------- */
 
+/* Still used by the lyrics panel. */
 .drawer__scrim {
   position: fixed;
   inset: 0;
@@ -8,18 +9,27 @@
 }
 
 .drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(380px, 92vw);
-  z-index: 41;
+  grid-area: queue;
+  min-width: 0;
+  overflow: hidden;
   background: var(--bg-elev);
-  border-left: 1px solid var(--line);
+  border-left: 0 solid var(--line-soft);
   display: flex;
   flex-direction: column;
-  box-shadow: -20px 0 60px var(--scrim);
-  animation: sheet-in var(--dur-slow) var(--ease-emphasized);
+}
+
+.drawer--open {
+  border-left-width: 1px;
+}
+
+/* Fade the contents so a fast open/collapse doesn't look abrupt. */
+.drawer > * {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+.drawer--open > * {
+  opacity: 1;
 }
 
 .drawer__head {
@@ -184,26 +194,37 @@
   cursor: default;
 }
 
-/* ---------- Bottom sheet on mobile ---------- */
+/* ---------- Bottom sheet on mobile (slides up / down) ---------- */
 @media (max-width: 859.98px) {
   .drawer__scrim {
     z-index: 100;
   }
 
   .drawer {
-    top: auto;
+    position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 101;
     width: 100%;
-    max-height: 80vh;
+    max-height: 78vh;
     border-left: 0;
     border-top: 1px solid var(--line);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -20px 60px var(--scrim);
-    animation: sheet-up var(--dur-slow) var(--ease-emphasized);
     padding-bottom: env(safe-area-inset-bottom);
+    transform: translateY(100%);
+    transition: transform var(--dur-base) var(--ease-emphasized);
+  }
+
+  .drawer--open {
+    transform: translateY(0);
+  }
+
+  .drawer > *,
+  .drawer--open > * {
+    opacity: 1;
+    transition: none;
   }
 
   /* Grip handle */

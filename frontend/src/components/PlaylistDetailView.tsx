@@ -9,6 +9,7 @@ import {
   usePlaylist,
 } from "../state/playlists";
 import { usePlayer } from "../state/player";
+import { shuffled } from "../lib/shuffle";
 import Icon from "./Icon";
 import PlaylistTrackRow from "./PlaylistTrackRow";
 
@@ -32,7 +33,7 @@ export default function PlaylistDetailView({
   onBack: () => void;
 }) {
   const pl = usePlaylist(id);
-  const { playList } = usePlayer();
+  const { playList, appendMany } = usePlayer();
   const [batch, setBatch] = useState<Batch>({ state: "idle" });
   const pollRef = useRef<number>();
 
@@ -108,6 +109,21 @@ export default function PlaylistDetailView({
               onClick={() => playList(pl.tracks, 0)}
             >
               <Icon name="play" size={14} filled /> Reproducir
+            </button>
+            <button
+              className="btn"
+              disabled={!pl.tracks.length}
+              onClick={() => playList(shuffled(pl.tracks), 0)}
+            >
+              <Icon name="shuffle" size={14} /> Aleatorio
+            </button>
+            <button
+              className="btn btn--ghost"
+              disabled={!pl.tracks.length}
+              onClick={() => appendMany(pl.tracks)}
+              title="Añadir todas a la cola"
+            >
+              <Icon name="queue" size={14} /> A la cola
             </button>
             <button
               className="btn"

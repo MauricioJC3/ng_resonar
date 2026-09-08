@@ -217,6 +217,13 @@
   bottom: calc(106px + min(340px, calc(100vw - 40px)) * 0.5625 + 60px);
 }
 
+/* Slide the floating widgets in from the right edge when the docked queue panel
+   is open (only matters for their default, un-dragged position). */
+.app:has(.drawer--open) .mini-video,
+.app:has(.drawer--open) .scrolltop {
+  right: calc(20px + min(340px, 34vw) + 12px);
+}
+
 @media (max-width: 859.98px) {
   .mini-video {
     right: 12px;
