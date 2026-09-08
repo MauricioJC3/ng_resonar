@@ -152,6 +152,12 @@
   margin: 0;
 }
 
+.artisthead__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .artist__more {
   margin-top: 12px;
 }

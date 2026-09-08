@@ -303,37 +303,3 @@
     width: 38px;
   }
 }
-
-/* ---------- Smooth swap when stepping through the search history ---------- */
-.searchresults {
-  animation: results-in var(--dur-slow) var(--ease-emphasized);
-}
-
-.searchresults--back {
-  animation-name: results-in-back;
-}
-
-.searchresults--fwd {
-  animation-name: results-in-fwd;
-}
-
-@keyframes results-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@keyframes results-in-back {
-  from {
-    opacity: 0;
-    transform: translateX(-26px);
-  }
-}
-
-@keyframes results-in-fwd {
-  from {
-    opacity: 0;
-    transform: translateX(26px);
-  }
-}

@@ -284,7 +284,11 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const playVideo = useCallback((v: VideoItem) => {
-    setCurrent((prev) => (prev?.id === v.id ? prev : v));
+    // Re-opening the video that's already loaded (e.g. expanding the mini-player)
+    // must not flip the stage back to "Cargando…" — only a real source change
+    // does, and the load effect below handles that.
+    if (currentRef.current?.id === v.id) return;
+    setCurrent(v);
     setLoadState("loading");
   }, []);
 

@@ -32,6 +32,12 @@
   border-bottom: 1px solid var(--line-soft);
 }
 
+.drawer__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .drawer__head button {
   display: flex;
   border: 0;
@@ -41,9 +47,14 @@
   border-radius: 8px;
 }
 
-.drawer__head button:hover {
+.drawer__head button:hover:not(:disabled) {
   color: var(--text);
   background: var(--bg-elev-2);
+}
+
+.drawer__head button:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .drawer__list {

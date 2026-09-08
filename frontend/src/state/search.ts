@@ -7,10 +7,9 @@ import type { AlbumCard, ArtistCard, Track, VideoItem } from "../types";
 // back on "trending" / "home". Not persisted across a reload — that's fine, a
 // reload is a fresh session. Wiped on logout via state/reset.ts.
 //
-// Each side also keeps a navigable history of the queries that were run, so the
-// search views can offer ‹ / › buttons to step back and forward through past
-// searches (independent of the browser Back gesture, which moves between app
-// views).
+// Each side keeps the FULL results of every query it has run, so the ‹ / ›
+// buttons in the search views step back and forward instantly, with no refetch
+// (independent of the browser Back gesture, which moves between app views).
 
 interface MusicResults {
   query: string;
@@ -24,22 +23,25 @@ interface VideoResults {
   results: VideoItem[];
 }
 
-interface History {
-  history: string[];
+interface History<T> {
+  history: T[];
   cursor: number;
 }
 
-type MusicSearch = MusicResults & History;
-type VideoSearch = VideoResults & History;
+type MusicSearch = MusicResults & History<MusicResults>;
+type VideoSearch = VideoResults & History<VideoResults>;
 
 interface SearchState {
   music: MusicSearch;
   video: VideoSearch;
 }
 
+const EMPTY_MUSIC: MusicResults = { query: "", songs: [], artists: [], albums: [] };
+const EMPTY_VIDEO: VideoResults = { query: "", results: [] };
+
 const EMPTY: SearchState = {
-  music: { query: "", songs: [], artists: [], albums: [], history: [], cursor: -1 },
-  video: { query: "", results: [], history: [], cursor: -1 },
+  music: { ...EMPTY_MUSIC, history: [], cursor: -1 },
+  video: { ...EMPTY_VIDEO, history: [], cursor: -1 },
 };
 
 let snapshot: SearchState = EMPTY;
@@ -59,53 +61,59 @@ export function useSearchStore(): SearchState {
   );
 }
 
-/** Append `query` to a history, dropping any entries ahead of the cursor. */
-function pushHistory(h: History, query: string): History {
-  if (!query || h.history[h.cursor] === query) return h;
-  const history = [...h.history.slice(0, h.cursor + 1), query];
+/**
+ * Record a fresh set of results. Extends the history: re-running the current
+ * query replaces its entry in place; a new query drops anything ahead of the
+ * cursor and appends.
+ */
+function record<T extends { query: string }>(
+  h: History<T>,
+  entry: T,
+): History<T> {
+  const atCursor = h.history[h.cursor];
+  if (atCursor && atCursor.query === entry.query) {
+    const history = h.history.slice();
+    history[h.cursor] = entry;
+    return { history, cursor: h.cursor };
+  }
+  const history = [...h.history.slice(0, h.cursor + 1), entry];
   return { history, cursor: history.length - 1 };
 }
 
-/**
- * Store a fresh music search. `push` is true for a search the user just ran
- * (extends the history) and false when we're replaying a history entry.
- */
-export function setMusicSearch(results: MusicResults, push = true) {
-  const nav = push
-    ? pushHistory(snapshot.music, results.query)
-    : { history: snapshot.music.history, cursor: snapshot.music.cursor };
+export function setMusicSearch(results: MusicResults) {
+  const nav = record(snapshot.music, results);
   snapshot = { ...snapshot, music: { ...results, ...nav } };
   emit();
 }
 
-export function setVideoSearch(results: VideoResults, push = true) {
-  const nav = push
-    ? pushHistory(snapshot.video, results.query)
-    : { history: snapshot.video.history, cursor: snapshot.video.cursor };
+export function setVideoSearch(results: VideoResults) {
+  const nav = record(snapshot.video, results);
   snapshot = { ...snapshot, video: { ...results, ...nav } };
   emit();
 }
 
 /**
- * Move the music history cursor by `delta` (−1 back, +1 forward). Returns the
- * query at the new position, or null when the move is out of range.
+ * Step the music history cursor by `delta` (−1 back, +1 forward) and show that
+ * entry's cached results immediately. Returns the entry, or null if out of range.
  */
-export function musicHistoryGo(delta: number): string | null {
+export function musicHistoryGo(delta: number): MusicResults | null {
   const { history, cursor } = snapshot.music;
   const next = cursor + delta;
   if (next < 0 || next >= history.length) return null;
-  snapshot = { ...snapshot, music: { ...snapshot.music, cursor: next } };
+  const entry = history[next];
+  snapshot = { ...snapshot, music: { ...entry, history, cursor: next } };
   emit();
-  return history[next];
+  return entry;
 }
 
-export function videoHistoryGo(delta: number): string | null {
+export function videoHistoryGo(delta: number): VideoResults | null {
   const { history, cursor } = snapshot.video;
   const next = cursor + delta;
   if (next < 0 || next >= history.length) return null;
-  snapshot = { ...snapshot, video: { ...snapshot.video, cursor: next } };
+  const entry = history[next];
+  snapshot = { ...snapshot, video: { ...entry, history, cursor: next } };
   emit();
-  return history[next];
+  return entry;
 }
 
 export function resetSearch() {

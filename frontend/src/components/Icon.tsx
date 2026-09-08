@@ -145,6 +145,16 @@ const PATHS: Record<string, ReactElement> = {
   ),
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronUp: <path d="m6 15 6-6 6 6" />,
+  check: <path d="M20 6 9 17l-5-5" />,
+  shuffle: (
+    <>
+      <path d="M16 3h5v5" />
+      <path d="M4 20 21 3" />
+      <path d="M21 16v5h-5" />
+      <path d="M15 15l6 6" />
+      <path d="M4 4l5 5" />
+    </>
+  ),
   grip: (
     <>
       <circle cx="9" cy="6" r="1" />

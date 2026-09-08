@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import type { Track } from "../types";
+import { shuffled } from "../lib/shuffle";
 
 const RADIO_KEY = "resonar:radio";
 
@@ -26,6 +27,7 @@ type Action =
   | { type: "appendMany"; tracks: Track[] }
   | { type: "removeAt"; at: number }
   | { type: "move"; from: number; to: number }
+  | { type: "shuffle" }
   | { type: "toggleRadio" }
   | { type: "reset" };
 
@@ -90,6 +92,15 @@ function reducer(state: State, action: Action): State {
       return { ...state, queue, index };
     }
 
+    case "shuffle": {
+      if (state.queue.length < 3) return state;
+      // Keep whatever is playing exactly where it is; shuffle everything else.
+      const current = state.queue[state.index];
+      const rest = shuffled(state.queue.filter((_, i) => i !== state.index));
+      rest.splice(state.index, 0, current);
+      return { ...state, queue: rest };
+    }
+
     case "toggleRadio": {
       const radio = !state.radio;
       try {
@@ -120,6 +131,7 @@ interface PlayerApi {
   appendMany: (tracks: Track[]) => void;
   removeAt: (at: number) => void;
   move: (from: number, to: number) => void;
+  shuffle: () => void;
   toggleRadio: () => void;
 }
 
@@ -170,6 +182,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       appendMany: (tracks) => dispatch({ type: "appendMany", tracks }),
       removeAt: (at) => dispatch({ type: "removeAt", at }),
       move: (from, to) => dispatch({ type: "move", from, to }),
+      shuffle: () => dispatch({ type: "shuffle" }),
       toggleRadio: () => dispatch({ type: "toggleRadio" }),
     }),
     [state],

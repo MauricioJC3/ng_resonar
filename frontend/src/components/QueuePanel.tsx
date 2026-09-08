@@ -12,7 +12,7 @@ export default function QueuePanel({
   open: boolean;
   onClose: () => void;
 }) {
-  const { queue, index, jumpTo, removeAt, move } = usePlayer();
+  const { queue, index, jumpTo, removeAt, move, shuffle } = usePlayer();
   const library = useLibrary();
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -40,9 +40,19 @@ export default function QueuePanel({
       <aside className="drawer" role="dialog" aria-label="Cola de reproducción">
         <header className="drawer__head">
           <span>Cola · {queue.length}</span>
-          <button onClick={onClose} aria-label="Cerrar">
-            <Icon name="x" size={16} />
-          </button>
+          <div className="drawer__head-actions">
+            <button
+              onClick={shuffle}
+              disabled={queue.length < 3}
+              aria-label="Mezclar la cola"
+              title="Mezclar la cola"
+            >
+              <Icon name="shuffle" size={15} />
+            </button>
+            <button onClick={onClose} aria-label="Cerrar">
+              <Icon name="x" size={16} />
+            </button>
+          </div>
         </header>
 
         <div className="drawer__list">

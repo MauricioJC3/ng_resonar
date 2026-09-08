@@ -4,6 +4,7 @@ import { getAlbum } from "../api";
 import type { Album } from "../types";
 import { usePlayer } from "../state/player";
 import { useListKeyboard } from "../lib/useListKeyboard";
+import { shuffled } from "../lib/shuffle";
 import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 
@@ -16,7 +17,7 @@ export default function AlbumView({
 }) {
   const [album, setAlbum] = useState<Album | null>(null);
   const [failed, setFailed] = useState(false);
-  const { playList } = usePlayer();
+  const { playList, appendMany } = usePlayer();
 
   const tracks = album?.tracks ?? [];
   const { activeIndex, containerRef } = useListKeyboard(
@@ -80,6 +81,21 @@ export default function AlbumView({
                   onClick={() => playList(album.tracks, 0)}
                 >
                   <Icon name="play" size={14} filled /> Reproducir
+                </button>
+                <button
+                  className="btn"
+                  disabled={!album.tracks.length}
+                  onClick={() => playList(shuffled(album.tracks), 0)}
+                >
+                  <Icon name="shuffle" size={14} /> Aleatorio
+                </button>
+                <button
+                  className="btn btn--ghost"
+                  disabled={!album.tracks.length}
+                  onClick={() => appendMany(album.tracks)}
+                  title="Añadir todas a la cola"
+                >
+                  <Icon name="queue" size={14} /> A la cola
                 </button>
               </div>
             </div>

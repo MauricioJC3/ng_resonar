@@ -22,13 +22,20 @@ export default function TrackRow({
   /** Highlighted by keyboard list navigation. */
   selected?: boolean;
 }) {
-  const { current } = usePlayer();
+  const { current, enqueue } = usePlayer();
   const library = useLibrary();
   const playlists = usePlaylists();
   const [menu, setMenu] = useState<null | "dl" | "pl">(null);
+  const [queued, setQueued] = useState(false);
 
   const active = current?.id === track.id;
   const saved = isSaved(track.id, library);
+
+  function addToQueue() {
+    enqueue(track);
+    setQueued(true);
+    window.setTimeout(() => setQueued(false), 1200);
+  }
 
   async function addTo(id: string) {
     setMenu(null);
@@ -89,6 +96,15 @@ export default function TrackRow({
           onClick={() => toggleLibrary(track)}
         >
           <Icon name="heart" size={16} filled={saved} />
+        </button>
+
+        <button
+          className={"track__icon" + (queued ? " is-on" : "")}
+          title={queued ? "Añadida a la cola" : "Añadir a la cola"}
+          aria-label="Añadir a la cola"
+          onClick={addToQueue}
+        >
+          <Icon name={queued ? "check" : "queue"} size={16} />
         </button>
 
         <div className="track__dl">

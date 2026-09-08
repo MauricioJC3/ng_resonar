@@ -4,6 +4,7 @@ import { getArtist } from "../api";
 import type { AlbumCard, Artist } from "../types";
 import { usePlayer } from "../state/player";
 import { useListKeyboard } from "../lib/useListKeyboard";
+import { shuffled } from "../lib/shuffle";
 import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 
@@ -21,7 +22,7 @@ export default function ArtistView({
   const [artist, setArtist] = useState<Artist | null>(null);
   const [failed, setFailed] = useState(false);
   const [allSongs, setAllSongs] = useState(false);
-  const { playList } = usePlayer();
+  const { playList, appendMany } = usePlayer();
 
   const shownSongs = artist
     ? allSongs
@@ -104,12 +105,27 @@ export default function ArtistView({
             <div className="artisthead__meta">
               <h1>{artist.name}</h1>
               {artist.topSongs.length > 0 && (
-                <button
-                  className="btn btn--accent"
-                  onClick={() => playList(artist.topSongs, 0)}
-                >
-                  <Icon name="play" size={14} filled /> Reproducir
-                </button>
+                <div className="artisthead__actions">
+                  <button
+                    className="btn btn--accent"
+                    onClick={() => playList(artist.topSongs, 0)}
+                  >
+                    <Icon name="play" size={14} filled /> Reproducir
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => playList(shuffled(artist.topSongs), 0)}
+                  >
+                    <Icon name="shuffle" size={14} /> Aleatorio
+                  </button>
+                  <button
+                    className="btn btn--ghost"
+                    onClick={() => appendMany(artist.topSongs)}
+                    title="Añadir a la cola"
+                  >
+                    <Icon name="queue" size={14} /> A la cola
+                  </button>
+                </div>
               )}
             </div>
           </div>

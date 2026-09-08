@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { searchVideos, trendingVideos, videoInfo } from "../api";
 import type { VideoItem } from "../types";
 import { setVideoSearch, useSearchStore, videoHistoryGo } from "../state/search";
 import { extractYouTubeId } from "../lib/youtube";
+import { swapWithTransition } from "../lib/viewTransition";
 import Icon from "./Icon";
 import SearchBox from "./SearchBox";
 import VideoCard from "./VideoCard";
@@ -20,14 +21,13 @@ export default function VideosView({
     "empty" | "loading" | "idle" | "error"
   >(video.query ? "idle" : "empty");
   const [error, setError] = useState("");
-  const [navDir, setNavDir] = useState<"" | "back" | "fwd">("");
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     trendingVideos().then(setTrending);
   }, []);
 
-  async function run(term: string, push = true) {
-    if (push) setNavDir("");
+  async function run(term: string) {
     const id = extractYouTubeId(term);
     if (id) {
       setStatus("loading");
@@ -48,7 +48,7 @@ export default function VideosView({
     setError("");
     try {
       const results = await searchVideos(term);
-      setVideoSearch({ query: term, results }, push);
+      setVideoSearch({ query: term, results });
       setStatus("idle");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error desconocido");
@@ -57,10 +57,13 @@ export default function VideosView({
   }
 
   function stepHistory(delta: number) {
-    const term = videoHistoryGo(delta);
-    if (!term) return;
-    setNavDir(delta < 0 ? "back" : "fwd");
-    run(term, false);
+    swapWithTransition(
+      resultsRef.current,
+      delta < 0 ? "sr-back" : "sr-fwd",
+      () => {
+        if (videoHistoryGo(delta)) setStatus("idle");
+      },
+    );
   }
 
   const results = video.results;
@@ -118,12 +121,7 @@ export default function VideosView({
 
       {showTrending && <h2 className="view__subhead">En tendencia</h2>}
 
-      <div
-        className={
-          "searchresults" + (navDir ? ` searchresults--${navDir}` : "")
-        }
-        key={`${video.cursor}|${video.query}`}
-      >
+      <div className="searchresults" ref={resultsRef}>
         <div className="videogrid">
           {(status === "empty" ? trending : results).map((v) => (
             <VideoCard key={v.id} video={v} onClick={() => onWatch(v)} />

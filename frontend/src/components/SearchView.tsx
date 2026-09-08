@@ -1,15 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { homeMusic, search, searchAlbums, searchArtists } from "../api";
 import type { Track } from "../types";
 import { usePlayer } from "../state/player";
 import { musicHistoryGo, setMusicSearch, useSearchStore } from "../state/search";
 import { useListKeyboard } from "../lib/useListKeyboard";
+import { swapWithTransition } from "../lib/viewTransition";
 import Icon from "./Icon";
 import SearchBox from "./SearchBox";
 import TrackRow from "./TrackRow";
-
-type NavDir = "" | "back" | "fwd";
 
 export default function SearchView({
   onOpenArtist,
@@ -24,15 +23,14 @@ export default function SearchView({
     music.query ? "idle" : "empty",
   );
   const [error, setError] = useState("");
-  const [navDir, setNavDir] = useState<NavDir>("");
+  const resultsRef = useRef<HTMLDivElement>(null);
   const { playList } = usePlayer();
 
   useEffect(() => {
     homeMusic().then(setHome);
   }, []);
 
-  async function run(term: string, push = true) {
-    if (push) setNavDir("");
+  async function run(term: string) {
     setStatus("loading");
     setError("");
     try {
@@ -41,7 +39,7 @@ export default function SearchView({
         searchArtists(term),
         searchAlbums(term),
       ]);
-      setMusicSearch({ query: term, songs, artists, albums }, push);
+      setMusicSearch({ query: term, songs, artists, albums });
       setStatus("idle");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error desconocido");
@@ -49,11 +47,15 @@ export default function SearchView({
     }
   }
 
+  // Cached results — the swap is instant, so it can ride a View Transition.
   function stepHistory(delta: number) {
-    const term = musicHistoryGo(delta);
-    if (!term) return;
-    setNavDir(delta < 0 ? "back" : "fwd");
-    run(term, false);
+    swapWithTransition(
+      resultsRef.current,
+      delta < 0 ? "sr-back" : "sr-fwd",
+      () => {
+        if (musicHistoryGo(delta)) setStatus("idle");
+      },
+    );
   }
 
   const showHome = status === "empty" && home.length > 0;
@@ -120,10 +122,7 @@ export default function SearchView({
 
       {nothing && <p className="hint">Sin resultados.</p>}
 
-      <div
-        className={"searchresults" + (navDir ? ` searchresults--${navDir}` : "")}
-        key={`${music.cursor}|${music.query}`}
-      >
+      <div className="searchresults" ref={resultsRef}>
         {status === "idle" && music.artists.length > 0 && (
           <>
             <h2 className="view__subhead">Artistas</h2>

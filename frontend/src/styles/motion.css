@@ -75,3 +75,38 @@
   animation-duration: var(--dur-base);
   animation-timing-function: var(--ease-emphasized);
 }
+
+/* Search results stepping through history: a soft directional slide + cross-fade
+   (forward pushes left→ , back pushes →right), the way Spotify moves between
+   pages. Names are set transiently by swapWithTransition(). */
+::view-transition-group(sr-fwd),
+::view-transition-group(sr-back) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-emphasized);
+}
+
+::view-transition-old(sr-fwd) {
+  animation: sr-old-left var(--dur-slow) var(--ease-emphasized) both;
+}
+::view-transition-new(sr-fwd) {
+  animation: sr-new-right var(--dur-slow) var(--ease-emphasized) both;
+}
+::view-transition-old(sr-back) {
+  animation: sr-old-right var(--dur-slow) var(--ease-emphasized) both;
+}
+::view-transition-new(sr-back) {
+  animation: sr-new-left var(--dur-slow) var(--ease-emphasized) both;
+}
+
+@keyframes sr-old-left {
+  to { opacity: 0; transform: translateX(-22px); }
+}
+@keyframes sr-new-right {
+  from { opacity: 0; transform: translateX(22px); }
+}
+@keyframes sr-old-right {
+  to { opacity: 0; transform: translateX(22px); }
+}
+@keyframes sr-new-left {
+  from { opacity: 0; transform: translateX(-22px); }
+}
