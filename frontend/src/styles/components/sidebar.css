@@ -59,6 +59,13 @@
   background: var(--accent-wash);
 }
 
+/* Drag a track over "Biblioteca" to add it to favourites. */
+.nav__item--drop {
+  color: var(--accent);
+  background: var(--accent-wash);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
 .nav__item.is-active svg {
   color: var(--accent);
 }

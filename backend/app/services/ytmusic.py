@@ -130,12 +130,31 @@ def _album_sync(browse_id: str) -> dict:
 
 
 def _artist_sync(browse_id: str) -> dict:
-    a = _yt().get_artist(browse_id)
+    yt = _yt()
+    a = yt.get_artist(browse_id)
 
+    songs_sec = a.get("songs") or {}
     top_songs: list[dict] = []
-    for t in (a.get("songs") or {}).get("results", []) or []:
-        if t.get("videoId"):
-            top_songs.append(_norm(t))
+
+    # get_artist only inlines ~5 songs. When the artist's "songs" playlist id is
+    # present, pull it for a fuller "Populares" list; fall back to the inline
+    # results if that lookup fails (ytmusicapi internals are brittle).
+    songs_playlist = songs_sec.get("browseId")
+    if songs_playlist:
+        try:
+            pl = yt.get_playlist(songs_playlist, limit=10)
+            for t in pl.get("tracks", []) or []:
+                if t.get("videoId"):
+                    top_songs.append(_norm(t))
+        except Exception:  # noqa: BLE001
+            top_songs = []
+
+    if not top_songs:
+        for t in songs_sec.get("results", []) or []:
+            if t.get("videoId"):
+                top_songs.append(_norm(t))
+
+    top_songs = top_songs[:10]
 
     def _cards(key: str) -> list[dict]:
         sec = a.get(key) or {}

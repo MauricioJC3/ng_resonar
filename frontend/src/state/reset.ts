@@ -4,6 +4,7 @@ import { reset as resetPlaylists } from "./playlists";
 import { reset as resetSavedVideos } from "./savedVideos";
 import { reset as resetSearch } from "./search";
 import { reset as resetSettings } from "./settings";
+import { resetVideo } from "./video";
 
 /**
  * Wipe every per-user client store. Called by App.tsx on logout and whenever an
@@ -17,4 +18,5 @@ export function resetStores() {
   resetSearch();
   resetSettings();
   resetPlayerQueue();
+  resetVideo();
 }

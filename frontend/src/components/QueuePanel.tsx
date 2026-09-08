@@ -1,5 +1,8 @@
+import { useState } from "react";
+
 import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { usePlayer } from "../state/player";
+import { setTrackDrag } from "../lib/dnd";
 import Icon from "./Icon";
 
 export default function QueuePanel({
@@ -12,11 +15,28 @@ export default function QueuePanel({
   const { queue, index, jumpTo, removeAt, move } = usePlayer();
   const library = useLibrary();
 
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  function endDrag() {
+    setDragIndex(null);
+    setOverIndex(null);
+  }
+
+  function onDrop(to: number) {
+    if (dragIndex !== null && dragIndex !== to) move(dragIndex, to);
+    endDrag();
+  }
+
   if (!open) return null;
 
   return (
     <>
-      <div className="drawer__scrim" onClick={onClose} />
+      <div
+        className="drawer__scrim"
+        style={dragIndex !== null ? { pointerEvents: "none" } : undefined}
+        onClick={onClose}
+      />
       <aside className="drawer" role="dialog" aria-label="Cola de reproducción">
         <header className="drawer__head">
           <span>Cola · {queue.length}</span>
@@ -31,8 +51,36 @@ export default function QueuePanel({
           {queue.map((track, i) => (
             <div
               key={track.id + i}
-              className={"qrow" + (i === index ? " qrow--now" : "")}
+              className={
+                "qrow" +
+                (i === index ? " qrow--now" : "") +
+                (i === dragIndex ? " qrow--dragging" : "") +
+                (i === overIndex && dragIndex !== null && i !== dragIndex
+                  ? " qrow--over"
+                  : "")
+              }
+              draggable
+              onDragStart={(e) => {
+                setDragIndex(i);
+                setTrackDrag(e, track);
+              }}
+              onDragEnd={endDrag}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragIndex !== null) setOverIndex(i);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                onDrop(i);
+              }}
             >
+              <span
+                className="qrow__grip"
+                aria-hidden="true"
+                title="Arrastra para reordenar"
+              >
+                <Icon name="grip" size={14} />
+              </span>
               <button className="qrow__main" onClick={() => jumpTo(i)}>
                 <img src={track.thumbnail ?? ""} alt="" loading="lazy" />
                 <span className="qrow__text">

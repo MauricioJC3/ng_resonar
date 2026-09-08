@@ -1,48 +1,27 @@
-import { useEffect, useRef, useState } from "react";
-import Plyr from "plyr";
-import "plyr/dist/plyr.css";
+import { useCallback, useEffect, useState } from "react";
 
 import {
-  recordPlay,
   savedVideoDownloadUrl,
-  savedVideoFileUrl,
   searchVideos,
-  videoStreamUrl,
 } from "../api";
 import type { VideoItem } from "../types";
-import {
-  claimPlayback,
-  onPlaybackClaim,
-  setVideoActive,
-} from "../state/mediabus";
 import {
   removeSavedVideo,
   saveVideo,
   savedEntry,
   useSavedVideos,
 } from "../state/savedVideos";
+import { useVideo } from "../state/video";
 import Icon from "./Icon";
 import VideoCard from "./VideoCard";
 
 const QUALITIES = [720, 1080, 1440];
-const SB_KEY = "resonar:sb";
 
-interface Segment {
-  start: number;
-  end: number;
-  category: string;
-}
-
-const SB_LABEL: Record<string, string> = {
-  sponsor: "patrocinio",
-  selfpromo: "autopromoción",
-  interaction: "recordatorio",
-  intro: "intro",
-  outro: "cierre",
-  preview: "resumen",
-  music_offtopic: "sección sin música",
-};
-
+/**
+ * The full-screen "watch" surface. The `<video>` / Plyr instance itself lives in
+ * `VideoProvider` and survives navigation — this view only borrows the player
+ * node into its stage (`attachTo`) and renders the surrounding chrome.
+ */
 export default function WatchView({
   video,
   onClose,
@@ -52,112 +31,26 @@ export default function WatchView({
   onClose: () => void;
   onWatch: (v: VideoItem) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const plyrRef = useRef<Plyr | null>(null);
-  const lastIdRef = useRef(video.id);
+  const { current, loadState, sbOn, skipFlash, isHD, playVideo, reload, toggleSb, attachTo } =
+    useVideo();
+
+  // Stable ref callback so re-renders don't yank the player node out and back.
+  const setStage = useCallback(
+    (el: HTMLDivElement | null) => attachTo(el, "watch"),
+    [attachTo],
+  );
 
   const saved = useSavedVideos();
   const entry = savedEntry(video.id, saved);
-  const isHD = entry?.status === "ready";
-  const srcUrl = isHD ? savedVideoFileUrl(video.id) : videoStreamUrl(video.id);
 
   const [quality, setQuality] = useState(1080);
   const [related, setRelated] = useState<VideoItem[]>([]);
-  // Guards the "stage stays black forever" case: a stream that never extracts
-  // or 404s used to leave a black rectangle with no way out but a reload.
-  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
-    "loading",
-  );
-  const [reloadKey, setReloadKey] = useState(0);
-  const [sbOn, setSbOn] = useState(() => {
-    try {
-      return localStorage.getItem(SB_KEY) !== "0";
-    } catch {
-      return true;
-    }
-  });
-  const [skipFlash, setSkipFlash] = useState<string | null>(null);
 
-  const segmentsRef = useRef<Segment[]>([]);
-  const sbOnRef = useRef(sbOn);
-  sbOnRef.current = sbOn;
-
+  // Point the persistent player at this video whenever the view opens / changes.
   useEffect(() => {
-    if (!videoRef.current) return;
-    setVideoActive(true);
-    const player = new Plyr(videoRef.current, {
-      controls: [
-        "play-large",
-        "play",
-        "progress",
-        "current-time",
-        "duration",
-        "mute",
-        "volume",
-        "settings",
-        "pip",
-        "fullscreen",
-      ],
-      settings: ["speed"],
-      seekTime: 10,
-      keyboard: { focused: true, global: true },
-    });
-    plyrRef.current = player;
-    player.on("play", () => {
-      claimPlayback("video");
-      recordPlay(video, "video", "watch");
-    });
-    const off = onPlaybackClaim((kind) => {
-      if (kind !== "video") videoRef.current?.pause();
-    });
-    return () => {
-      off();
-      setVideoActive(false);
-      player.destroy();
-    };
-  }, []);
-
-  // Source (quick preview vs saved HD), keeping the current position on swap.
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    const sameVideo = lastIdRef.current === video.id;
-    const resumeAt = sameVideo ? el.currentTime : 0;
-    lastIdRef.current = video.id;
-
-    setLoadState("loading");
-    el.src = srcUrl;
-
-    const onMeta = () => {
-      if (resumeAt > 1 && Number.isFinite(resumeAt)) {
-        try {
-          el.currentTime = resumeAt;
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-    const onReady = () => setLoadState("ready");
-    const onError = () => setLoadState("error");
-    // yt-dlp extraction can be slow but not forever — after this long a still
-    // "loading" stage is a stuck stream, not a slow one.
-    const timeout = window.setTimeout(() => {
-      setLoadState((s) => (s === "loading" ? "error" : s));
-    }, 25000);
-
-    el.addEventListener("loadedmetadata", onMeta, { once: true });
-    el.addEventListener("playing", onReady);
-    el.addEventListener("canplay", onReady);
-    el.addEventListener("error", onError);
-    el.play().catch(() => {});
-    return () => {
-      window.clearTimeout(timeout);
-      el.removeEventListener("loadedmetadata", onMeta);
-      el.removeEventListener("playing", onReady);
-      el.removeEventListener("canplay", onReady);
-      el.removeEventListener("error", onError);
-    };
-  }, [srcUrl, video.id, reloadKey]);
+    playVideo(video);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video.id]);
 
   // When opening a video that is already saved, default the picker to the
   // quality it was saved at so "Cambiar calidad" starts from the real value.
@@ -165,47 +58,6 @@ export default function WatchView({
     if (entry?.status === "ready" && entry.quality) setQuality(entry.quality);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video.id, entry?.status]);
-
-  // SponsorBlock segments for this video.
-  useEffect(() => {
-    segmentsRef.current = [];
-    setSkipFlash(null);
-    let alive = true;
-    fetch(`/api/sponsorblock/${video.id}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (alive) segmentsRef.current = d.segments ?? [];
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [video.id]);
-
-  // Auto-skip while playing.
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    let flashTimer: number | undefined;
-    const onTime = () => {
-      if (!sbOnRef.current) return;
-      const t = el.currentTime;
-      for (const seg of segmentsRef.current) {
-        if (t >= seg.start && t < seg.end - 0.4) {
-          el.currentTime = seg.end;
-          setSkipFlash(SB_LABEL[seg.category] ?? "segmento");
-          window.clearTimeout(flashTimer);
-          flashTimer = window.setTimeout(() => setSkipFlash(null), 1600);
-          break;
-        }
-      }
-    };
-    el.addEventListener("timeupdate", onTime);
-    return () => {
-      el.removeEventListener("timeupdate", onTime);
-      window.clearTimeout(flashTimer);
-    };
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -219,17 +71,8 @@ export default function WatchView({
     };
   }, [video.id, video.title]);
 
-  function toggleSb() {
-    setSbOn((v) => {
-      const nv = !v;
-      try {
-        localStorage.setItem(SB_KEY, nv ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return nv;
-    });
-  }
+  // Only reflect load state for the video this view is actually showing.
+  const showingThis = current?.id === video.id;
 
   return (
     <div className="view watch">
@@ -238,26 +81,20 @@ export default function WatchView({
       </button>
 
       <div className="watch__stage">
-        {isHD && <span className="watch__hd">HD</span>}
-        {skipFlash && (
+        {isHD && showingThis && <span className="watch__hd">HD</span>}
+        {skipFlash && showingThis && (
           <span className="watch__skip">⏭ Saltado: {skipFlash}</span>
         )}
-        <video ref={videoRef} playsInline />
-        {loadState === "loading" && (
+        <div className="watch__stage-mount" ref={setStage} />
+        {showingThis && loadState === "loading" && (
           <div className="watch__stage-overlay">
             <span className="spinner" /> Cargando video…
           </div>
         )}
-        {loadState === "error" && (
+        {showingThis && loadState === "error" && (
           <div className="watch__stage-overlay">
             <p>No se pudo cargar el video.</p>
-            <button
-              className="btn btn--accent"
-              onClick={() => {
-                setLoadState("loading");
-                setReloadKey((k) => k + 1);
-              }}
-            >
+            <button className="btn btn--accent" onClick={reload}>
               Reintentar
             </button>
           </div>

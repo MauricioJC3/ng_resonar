@@ -1,5 +1,12 @@
 /* ---------- Shared bits ---------- */
 
+/* Favourites drop target (drag a queue row / track onto the Biblioteca list). */
+.view--drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: 8px;
+  border-radius: 12px;
+}
+
 .hint {
   color: var(--text-dim);
   font-size: 14px;

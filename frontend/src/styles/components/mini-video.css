@@ -1,0 +1,259 @@
+/* ---------- Persistent video: hidden holder ---------- */
+/* Home for the shared <video>/Plyr node while no surface is showing it. Kept in
+   the DOM (so the instance survives) but not rendered. */
+.video-holder {
+  display: none;
+}
+
+.video-box {
+  width: 100%;
+  height: 100%;
+}
+
+.video-box .plyr {
+  width: 100%;
+  height: 100%;
+  --plyr-color-main: var(--accent);
+}
+
+/* ---------- Watch stage mount point ---------- */
+.watch__stage-mount {
+  position: absolute;
+  inset: 0;
+}
+
+.watch__stage-mount .plyr,
+.watch__stage-mount .plyr__video-wrapper,
+.watch__stage-mount video {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+}
+
+/* ---------- Floating mini video ---------- */
+.mini-video {
+  position: fixed;
+  right: 20px;
+  bottom: 106px;
+  z-index: 38;
+  width: min(340px, calc(100vw - 40px));
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 18px 48px var(--scrim);
+  animation: sheet-in var(--dur-slow) var(--ease-emphasized);
+}
+
+.mini-video__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--stage-bg);
+}
+
+.mini-video__mount {
+  position: absolute;
+  inset: 0;
+}
+
+.mini-video__mount .plyr,
+.mini-video__mount .plyr__video-wrapper,
+.mini-video__mount video {
+  width: 100%;
+  height: 100%;
+}
+
+.mini-video__expand,
+.mini-video__close {
+  position: absolute;
+  top: 6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--on-media);
+  background: color-mix(in srgb, var(--stage-bg) 55%, transparent);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+
+.mini-video:hover .mini-video__expand,
+.mini-video:hover .mini-video__close,
+.mini-video:focus-within .mini-video__expand,
+.mini-video:focus-within .mini-video__close {
+  opacity: 1;
+}
+
+.mini-video__expand {
+  right: 40px;
+}
+
+.mini-video__close {
+  right: 6px;
+}
+
+.mini-video__expand:hover,
+.mini-video__close:hover {
+  background: color-mix(in srgb, var(--stage-bg) 78%, transparent);
+}
+
+.mini-video__bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.mini-video__bar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  transition:
+    color var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard);
+}
+
+.mini-video__bar button:hover {
+  color: var(--text);
+  background: var(--bg-elev-2);
+}
+
+.mini-video__play {
+  color: var(--text) !important;
+}
+
+.mini-video__title {
+  min-width: 0;
+  flex: 1;
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Back-to-top button ---------- */
+.scrolltop {
+  position: fixed;
+  right: 20px;
+  bottom: 106px;
+  z-index: 37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--text-dim);
+  box-shadow: 0 10px 30px var(--scrim);
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+  pointer-events: none;
+  transition:
+    opacity var(--dur-base) var(--ease-standard),
+    transform var(--dur-base) var(--ease-emphasized),
+    color var(--dur-base) var(--ease-standard),
+    border-color var(--dur-base) var(--ease-standard);
+}
+
+.scrolltop.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.scrolltop:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Lift clear of the mini video when both are on screen. */
+.scrolltop--raised {
+  bottom: calc(106px + min(340px, calc(100vw - 40px)) * 0.5625 + 60px);
+}
+
+@media (max-width: 859.98px) {
+  .mini-video {
+    right: 12px;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    width: min(260px, calc(100vw - 24px));
+  }
+
+  .scrolltop {
+    right: 12px;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+
+  .scrolltop--raised {
+    bottom: calc(150px + env(safe-area-inset-bottom) + min(260px, calc(100vw - 24px)) * 0.5625 + 56px);
+  }
+}
+
+/* ---------- Search history nav row ---------- */
+.searchrow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.searchrow .searchbar {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.searchrow__nav {
+  display: flex;
+  gap: 4px;
+}
+
+.searchrow__nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  color: var(--text-dim);
+  transition:
+    color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
+}
+
+.searchrow__nav button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.searchrow__nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.searchrow__fwd {
+  transform: scaleX(-1);
+}
+
+@media (max-width: 859.98px) {
+  .searchrow__nav button {
+    width: 34px;
+  }
+}

@@ -226,6 +226,28 @@ export default function PlayerBar() {
     };
   }, []);
 
+  // ---- "Radio": fill the queue with similar songs as soon as it's turned on
+  // (don't wait for the current track to end), when there's nothing queued after
+  // the current one. ----
+  const radioWasOn = useRef(radio);
+  useEffect(() => {
+    const turnedOn = radio && !radioWasOn.current;
+    radioWasOn.current = radio;
+    if (!turnedOn || !current || hasNext) return;
+    let alive = true;
+    related(current.id)
+      .then((more) => {
+        if (!alive) return;
+        const have = new Set(queue.map((t) => t.id));
+        const fresh = more.filter((t) => !have.has(t.id)).slice(0, 20);
+        if (fresh.length) appendMany(fresh);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [radio, current, hasNext, queue, appendMany]);
+
   // ---- "Radio": extend the queue with similar songs at the end ----
   useEffect(() => {
     const player = plyrRef.current;

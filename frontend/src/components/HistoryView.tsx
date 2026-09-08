@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { clearHistory, getHistory } from "../api";
 import type { HistoryEntry, Track, VideoItem } from "../types";
 import { usePlayer } from "../state/player";
+import { useListKeyboard } from "../lib/useListKeyboard";
 import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 
@@ -64,6 +65,10 @@ export default function HistoryView({
   }
 
   const songs = entries.map(toTrack);
+  const { activeIndex, containerRef } = useListKeyboard(
+    tab === "song" ? songs.length : 0,
+    (i) => playList(songs, i),
+  );
 
   return (
     <div className="view">
@@ -108,12 +113,18 @@ export default function HistoryView({
       )}
 
       {!loading && tab === "song" && entries.length > 0 && (
-        <div className="tracklist">
+        <div
+          className="tracklist"
+          ref={(el) => {
+            containerRef.current = el;
+          }}
+        >
           {songs.map((track, i) => (
             <TrackRow
               key={`${track.id}-${i}`}
               track={track}
               index={i}
+              selected={i === activeIndex}
               onPlay={() => playList(songs, i)}
             />
           ))}
