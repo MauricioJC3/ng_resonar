@@ -42,11 +42,16 @@ interface VideoApi {
   skipFlash: string | null;
   isHD: boolean;
   paused: boolean;
+  /** True while the video is in the browser's Picture-in-Picture window. */
+  pip: boolean;
+  /** Whether this browser allows Picture-in-Picture at all. */
+  pipSupported: boolean;
   playVideo: (v: VideoItem) => void;
   closeVideo: () => void;
   reload: () => void;
   toggleSb: () => void;
   togglePlay: () => void;
+  togglePip: () => void;
   seekBy: (delta: number) => void;
   /**
    * Move the persistent player node into `el` (or back to the hidden holder when
@@ -86,6 +91,9 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   });
   const [skipFlash, setSkipFlash] = useState<string | null>(null);
   const [paused, setPaused] = useState(true);
+  const [pip, setPip] = useState(false);
+  const pipSupported =
+    typeof document !== "undefined" && !!document.pictureInPictureEnabled;
 
   const currentRef = useRef(current);
   currentRef.current = current;
@@ -140,12 +148,6 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     const video = document.createElement("video");
     video.setAttribute("playsinline", "");
     video.playsInline = true;
-    // The persistent node gets moved between the watch stage and the floating
-    // widget. Native Picture-in-Picture (a separate OS window) fights that —
-    // switching tabs would leave a PiP window AND the in-app widget, then
-    // closing one froze the other. We do our own mini-player, so kill PiP.
-    video.setAttribute("disablepictureinpicture", "");
-    video.disablePictureInPicture = true;
     box.appendChild(video);
     holder.appendChild(box);
     boxRef.current = box;
@@ -161,6 +163,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
         "mute",
         "volume",
         "settings",
+        "pip",
         "fullscreen",
       ],
       settings: ["speed"],
@@ -178,12 +181,13 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     player.on("pause", () => setPaused(true));
     player.on("ended", () => setPaused(true));
 
-    // Safety net: if anything (e.g. a browser's automatic PiP on tab switch)
-    // still puts the video in Picture-in-Picture, bounce it straight back.
-    const onEnterPip = () => {
-      document.exitPictureInPicture?.().catch(() => {});
-    };
+    // Track Picture-in-Picture so the in-app floating widget can step aside
+    // while the OS window is up (that overlap is what used to "duplicate" the
+    // screen). The video node can still be reparented freely — PiP survives it.
+    const onEnterPip = () => setPip(true);
+    const onLeavePip = () => setPip(false);
     video.addEventListener("enterpictureinpicture", onEnterPip);
+    video.addEventListener("leavepictureinpicture", onLeavePip);
 
     const offClaim = onPlaybackClaim((kind) => {
       if (kind !== "video") video.pause();
@@ -194,6 +198,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     return () => {
       offClaim();
       video.removeEventListener("enterpictureinpicture", onEnterPip);
+      video.removeEventListener("leavepictureinpicture", onLeavePip);
       setVideoActive(false);
       player.destroy();
       box.remove();
@@ -306,6 +311,9 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const closeVideo = useCallback(() => {
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture().catch(() => {});
+    }
     const el = videoElRef.current;
     if (el) {
       el.pause();
@@ -328,6 +336,20 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const togglePlay = useCallback(() => {
     plyrRef.current?.togglePlay();
+  }, []);
+
+  const togglePip = useCallback(async () => {
+    const el = videoElRef.current;
+    if (!el || !document.pictureInPictureEnabled) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await el.requestPictureInPicture();
+      }
+    } catch {
+      /* user gesture / not-allowed — ignore */
+    }
   }, []);
 
   const seekBy = useCallback((delta: number) => {
@@ -363,6 +385,9 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     skipFlash,
     isHD: !!isHD,
     paused,
+    pip,
+    pipSupported,
+    togglePip,
     playVideo,
     closeVideo,
     reload,

@@ -54,8 +54,17 @@ export default function MiniVideo({
   hidden?: boolean;
   onExpand: (v: VideoItem) => void;
 }) {
-  const { current, paused, togglePlay, seekBy, closeVideo, attachTo } =
-    useVideo();
+  const {
+    current,
+    paused,
+    pip,
+    pipSupported,
+    togglePlay,
+    togglePip,
+    seekBy,
+    closeVideo,
+    attachTo,
+  } = useVideo();
 
   const rootRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -130,7 +139,9 @@ export default function MiniVideo({
     });
   }
 
-  if (!current || hidden) return null;
+  // While the video is in the OS Picture-in-Picture window, stand down — there's
+  // only one surface at a time, no more "duplicated" screens.
+  if (!current || hidden || pip) return null;
 
   const style = pos
     ? { left: pos.left, top: pos.top, right: "auto", bottom: "auto" }
@@ -146,6 +157,16 @@ export default function MiniVideo({
     >
       <div className="mini-video__stage">
         <div className="mini-video__mount" ref={setMount} />
+        {pipSupported && (
+          <button
+            className="mini-video__pip"
+            onClick={togglePip}
+            aria-label="Ventana emergente (encima de todo)"
+            title="Ventana emergente"
+          >
+            <Icon name="pip" size={15} />
+          </button>
+        )}
         <button
           className="mini-video__expand"
           onClick={() => onExpand(current)}

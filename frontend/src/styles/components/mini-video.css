@@ -80,6 +80,7 @@
   height: 100%;
 }
 
+.mini-video__pip,
 .mini-video__expand,
 .mini-video__close {
   position: absolute;
@@ -99,11 +100,17 @@
   transition: opacity var(--dur-base) var(--ease-standard);
 }
 
+.mini-video:hover .mini-video__pip,
 .mini-video:hover .mini-video__expand,
 .mini-video:hover .mini-video__close,
+.mini-video:focus-within .mini-video__pip,
 .mini-video:focus-within .mini-video__expand,
 .mini-video:focus-within .mini-video__close {
   opacity: 1;
+}
+
+.mini-video__pip {
+  right: 74px;
 }
 
 .mini-video__expand {
@@ -114,6 +121,7 @@
   right: 6px;
 }
 
+.mini-video__pip:hover,
 .mini-video__expand:hover,
 .mini-video__close:hover {
   background: color-mix(in srgb, var(--stage-bg) 78%, transparent);
