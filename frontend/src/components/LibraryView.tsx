@@ -5,6 +5,7 @@ import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { useSavedVideos } from "../state/savedVideos";
 import { usePlayer } from "../state/player";
 import { hasTrackDrag, readTrackDrag } from "../lib/dnd";
+import { useListKeyboard } from "../lib/useListKeyboard";
 import TrackRow from "./TrackRow";
 import SavedVideoRow from "./SavedVideoRow";
 
@@ -18,6 +19,11 @@ export default function LibraryView({
   const songs = useLibrary();
   const videos = useSavedVideos();
   const { playList } = usePlayer();
+
+  const { activeIndex, listRef } = useListKeyboard(
+    tab === "songs" ? songs.length : 0,
+    (i) => playList(songs, i),
+  );
 
   const dropProps =
     tab === "songs"
@@ -69,12 +75,13 @@ export default function LibraryView({
             </p>
           </div>
         ) : (
-          <div className="tracklist">
+          <div className="tracklist" ref={listRef}>
             {songs.map((track, i) => (
               <TrackRow
                 key={track.id}
                 track={track}
                 index={i}
+                selected={i === activeIndex}
                 onPlay={() => playList(songs, i)}
               />
             ))}

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getHistory, homeMusic, recommendations } from "../api";
 import type { HistoryEntry, Track } from "../types";
 import { usePlayer } from "../state/player";
+import { useListKeyboard } from "../lib/useListKeyboard";
 import TrackRow from "./TrackRow";
 
 // History entries carry videoId/title/artist/thumbnail; adapt to the Track shape
@@ -48,6 +49,14 @@ export default function HomeView() {
     forYou.length === 0 &&
     recent.length === 0 &&
     feed.length === 0;
+
+  // One roving cursor for the page — the "recently played" list if there is one,
+  // otherwise the "listen now" feed (the two "hcards" grids aren't row lists).
+  const navList = recent.length > 0 ? recent : feed;
+  const navOnRecent = recent.length > 0;
+  const { activeIndex, listRef } = useListKeyboard(navList.length, (i) =>
+    playList(navList, i),
+  );
 
   return (
     <div className="view">
@@ -101,12 +110,16 @@ export default function HomeView() {
       {recent.length > 0 && (
         <section className="home__section">
           <h2 className="view__subhead">Reproducido recientemente</h2>
-          <div className="tracklist">
+          <div
+            className="tracklist"
+            ref={navOnRecent ? listRef : undefined}
+          >
             {recent.map((track, i) => (
               <TrackRow
                 key={"rp" + track.id + i}
                 track={track}
                 index={i}
+                selected={navOnRecent && i === activeIndex}
                 onPlay={() => playList(recent, i)}
               />
             ))}
@@ -117,12 +130,16 @@ export default function HomeView() {
       {feed.length > 0 && (
         <section className="home__section">
           <h2 className="view__subhead">Escucha algo ahora</h2>
-          <div className="tracklist">
+          <div
+            className="tracklist"
+            ref={!navOnRecent ? listRef : undefined}
+          >
             {feed.map((track, i) => (
               <TrackRow
                 key={track.id + i}
                 track={track}
                 index={i}
+                selected={!navOnRecent && i === activeIndex}
                 onPlay={() => playList(feed, i)}
               />
             ))}

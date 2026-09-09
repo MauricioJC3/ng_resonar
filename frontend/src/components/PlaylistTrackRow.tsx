@@ -13,6 +13,7 @@ export default function PlaylistTrackRow({
   onRemove,
   onUp,
   onDown,
+  selected = false,
 }: {
   track: Track;
   index: number;
@@ -20,6 +21,8 @@ export default function PlaylistTrackRow({
   onRemove: () => void;
   onUp?: () => void;
   onDown?: () => void;
+  /** Highlighted by keyboard list navigation. */
+  selected?: boolean;
 }) {
   const { current, enqueue } = usePlayer();
   const active = current?.id === track.id;
@@ -32,7 +35,14 @@ export default function PlaylistTrackRow({
   }
 
   return (
-    <div className={"track" + (active ? " track--active" : "")}>
+    <div
+      className={
+        "track" +
+        (active ? " track--active" : "") +
+        (selected ? " track--selected" : "")
+      }
+      aria-selected={selected || undefined}
+    >
       <span className="track__index">
         {active ? (
           <span className="eq" aria-label="Sonando">

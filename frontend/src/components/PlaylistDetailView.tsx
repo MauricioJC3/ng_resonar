@@ -10,6 +10,7 @@ import {
 } from "../state/playlists";
 import { usePlayer } from "../state/player";
 import { shuffled } from "../lib/shuffle";
+import { useListKeyboard } from "../lib/useListKeyboard";
 import Icon from "./Icon";
 import PlaylistTrackRow from "./PlaylistTrackRow";
 
@@ -38,6 +39,12 @@ export default function PlaylistDetailView({
   const pollRef = useRef<number>();
 
   useEffect(() => () => window.clearInterval(pollRef.current), []);
+
+  const plTracks = pl?.tracks ?? [];
+  const { activeIndex, listRef } = useListKeyboard(
+    plTracks.length,
+    (i) => playList(plTracks, i),
+  );
 
   if (!pl) {
     return (
@@ -176,12 +183,13 @@ export default function PlaylistDetailView({
           </p>
         </div>
       ) : (
-        <div className="tracklist tracklist--pl">
+        <div className="tracklist tracklist--pl" ref={listRef}>
           {pl.tracks.map((track, i) => (
             <PlaylistTrackRow
               key={track.id}
               track={track}
               index={i}
+              selected={i === activeIndex}
               onPlay={() => playList(pl.tracks, i)}
               onRemove={() => removeFromPlaylist(id, track.id)}
               onUp={i > 0 ? () => reorderPlaylist(id, moved(ids, i, i - 1)) : undefined}
