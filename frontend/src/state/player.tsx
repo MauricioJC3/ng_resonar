@@ -11,6 +11,10 @@ import type { Track } from "../types";
 import { shuffled } from "../lib/shuffle";
 
 const RADIO_KEY = "resonar:radio";
+const QUEUE_KEY = "resonar:queue";
+// Cap what we persist so a very long radio queue can't blow the storage quota.
+const PERSIST_MAX = 200;
+const PERSIST_BEHIND = 20;
 
 interface State {
   queue: Track[];
@@ -167,6 +171,48 @@ let clearQueue: (() => void) | null = null;
 /** Clear the play queue on logout / session expiry (no-op if unmounted). */
 export function resetPlayerQueue() {
   clearQueue?.();
+  try {
+    localStorage.removeItem(QUEUE_KEY);
+    localStorage.removeItem("resonar:pos"); // saved playback position (PlayerBar)
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadQueue(): { queue: Track[]; index: number } {
+  try {
+    const raw = localStorage.getItem(QUEUE_KEY);
+    if (!raw) return { queue: [], index: 0 };
+    const p = JSON.parse(raw) as { queue?: unknown; index?: unknown };
+    const queue = Array.isArray(p.queue)
+      ? (p.queue as Track[]).filter(
+          (t) => t && typeof (t as Track).id === "string",
+        )
+      : [];
+    if (queue.length === 0) return { queue: [], index: 0 };
+    const idx = Math.trunc(Number(p.index)) || 0;
+    return { queue, index: Math.max(0, Math.min(idx, queue.length - 1)) };
+  } catch {
+    return { queue: [], index: 0 };
+  }
+}
+
+/** Persist the queue around the current track so a reload doesn't lose it. */
+function saveQueue(state: State) {
+  try {
+    if (state.queue.length === 0) {
+      localStorage.removeItem(QUEUE_KEY);
+      return;
+    }
+    const from = Math.max(0, state.index - PERSIST_BEHIND);
+    const queue = state.queue.slice(from, from + PERSIST_MAX);
+    localStorage.setItem(
+      QUEUE_KEY,
+      JSON.stringify({ queue, index: state.index - from }),
+    );
+  } catch {
+    /* ignore quota / disabled storage */
+  }
 }
 
 function initState(): State {
@@ -176,7 +222,8 @@ function initState(): State {
   } catch {
     /* ignore */
   }
-  return { queue: [], index: 0, radio };
+  const { queue, index } = loadQueue();
+  return { queue, index, radio };
 }
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
@@ -188,6 +235,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       clearQueue = null;
     };
   }, []);
+
+  // Keep the persisted queue in sync so Ctrl+Shift+R doesn't drop what's playing.
+  useEffect(() => {
+    saveQueue(state);
+  }, [state]);
 
   const api = useMemo<PlayerApi>(
     () => ({

@@ -23,6 +23,7 @@ import QueuePanel from "./QueuePanel";
 import LyricsPanel from "./LyricsPanel";
 
 const LEVEL_KEY = "resonar:level";
+const POS_KEY = "resonar:pos";
 
 function reducedMotion(): boolean {
   return (
@@ -32,8 +33,18 @@ function reducedMotion(): boolean {
 }
 
 export default function PlayerBar() {
-  const { current, next, prev, hasNext, radio, toggleRadio, appendMany, queue } =
-    usePlayer();
+  const {
+    current,
+    next,
+    prev,
+    hasNext,
+    radio,
+    toggleRadio,
+    appendMany,
+    queue,
+    index,
+  } = usePlayer();
+  const upcoming = Math.max(0, queue.length - index - 1);
   const library = useLibrary();
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -84,6 +95,9 @@ export default function PlayerBar() {
   const currentRef = useRef(current);
   currentRef.current = current;
   const scrobbledRef = useRef(false);
+  // True only for the very first track when it came back from a persisted queue
+  // (Ctrl+Shift+R): load it ready-to-play but don't autoplay / re-log it.
+  const restoringRef = useRef<boolean>(!!current);
 
   // ---- Web Audio volume leveling (engaged only when turned on) ----
   const [leveled, setLeveled] = useState(() => {
@@ -180,6 +194,7 @@ export default function PlayerBar() {
     });
 
     let lastPush = 0;
+    let lastPosSave = 0;
     const onTime = () => {
       const now = performance.now();
       if (now - lastPush < 200) return;
@@ -187,6 +202,17 @@ export default function PlayerBar() {
       const t = player.currentTime;
       const d = player.duration || 0;
       setNowPlaying({ time: t, duration: d });
+
+      // Remember where we are so a reload can resume the same spot.
+      const cid = currentRef.current?.id;
+      if (cid && t > 3 && now - lastPosSave > 4000) {
+        lastPosSave = now;
+        try {
+          localStorage.setItem(POS_KEY, JSON.stringify({ id: cid, t }));
+        } catch {
+          /* ignore */
+        }
+      }
 
       if ("mediaSession" in navigator && d > 0 && Number.isFinite(d)) {
         try {
@@ -320,14 +346,44 @@ export default function PlayerBar() {
     const audio = audioRef.current;
     if (!audio || !current) return;
 
+    const restoring = restoringRef.current;
+    restoringRef.current = false;
+
     audio.src = streamUrl(current.id);
-    audio.play().catch(() => {
-      /* autoplay may be blocked until the first gesture */
-    });
+
+    // Resume the saved position for this exact track (reload).
+    try {
+      const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null") as {
+        id?: string;
+        t?: number;
+      } | null;
+      if (saved && saved.id === current.id && (saved.t ?? 0) > 3) {
+        const onMeta = () => {
+          try {
+            audio.currentTime = saved.t as number;
+          } catch {
+            /* ignore */
+          }
+          audio.removeEventListener("loadedmetadata", onMeta);
+        };
+        audio.addEventListener("loadedmetadata", onMeta);
+      }
+    } catch {
+      /* ignore */
+    }
 
     scrobbledRef.current = false;
-    recordPlay(current, "song", "player");
-    if (scrobblingOn()) scrobbleNowPlaying(current);
+
+    if (restoring) {
+      // Loaded ready-to-play; the browser blocks autoplay without a gesture and
+      // we don't want to re-log a play the user isn't actually making.
+    } else {
+      audio.play().catch(() => {
+        /* autoplay may be blocked until the first gesture */
+      });
+      recordPlay(current, "song", "player");
+      if (scrobblingOn()) scrobbleNowPlaying(current);
+    }
 
     if ("mediaSession" in navigator) {
       const ms = navigator.mediaSession;
@@ -486,8 +542,8 @@ export default function PlayerBar() {
             aria-label="Cola"
           >
             <Icon name="queue" size={16} />
-            {queue.length > 0 && (
-              <span className="player__badge">{queue.length}</span>
+            {upcoming > 0 && (
+              <span className="player__badge">{upcoming}</span>
             )}
           </button>
           {current && (

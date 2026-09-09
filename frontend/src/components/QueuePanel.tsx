@@ -17,8 +17,14 @@ export default function QueuePanel({
   const { queue, index, jumpTo, removeAt, move, shuffle, enqueue } = usePlayer();
   const library = useLibrary();
 
-  // Reordering an existing row: this holds its index. External drags (a track
-  // dragged in from a list) leave it null.
+  // Spotify-style: only the current track and what's coming up is shown; a
+  // finished song drops off the list but is still in the queue, so pressing
+  // "anterior" brings it right back. Indices below are local to this slice;
+  // `index + vi` maps back to the real queue.
+  const visible = queue.slice(index);
+
+  // Reordering a visible row: this holds its local index. External drags (a
+  // track dragged in from a list) leave it null.
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [dropHot, setDropHot] = useState(false);
@@ -33,7 +39,7 @@ export default function QueuePanel({
     e.preventDefault();
     e.stopPropagation();
     if (dragIndex !== null) {
-      if (dragIndex !== to) move(dragIndex, to);
+      if (dragIndex !== to) move(index + dragIndex, index + to);
     } else {
       const track = readTrackDrag(e);
       if (track) enqueue(track);
@@ -53,7 +59,7 @@ export default function QueuePanel({
       aria-hidden={!open}
     >
       <header className="drawer__head">
-        <span>Cola · {queue.length}</span>
+        <span>Cola · {visible.length}</span>
         <div className="drawer__head-actions">
           <button
             onClick={shuffle}
@@ -93,34 +99,34 @@ export default function QueuePanel({
           endDrag();
         }}
       >
-        {queue.length === 0 && (
+        {visible.length === 0 && (
           <p className="drawer__empty">
             La cola está vacía. Arrastra canciones aquí o usa el botón de cola.
           </p>
         )}
 
-        {queue.map((track, i) => (
+        {visible.map((track, vi) => (
           <div
-            key={track.id + i}
+            key={track.id + (index + vi)}
             className={
               "qrow" +
-              (i === index ? " qrow--now" : "") +
-              (i === dragIndex ? " qrow--dragging" : "") +
-              (i === overIndex && dragIndex !== null && i !== dragIndex
+              (vi === 0 ? " qrow--now" : "") +
+              (vi === dragIndex ? " qrow--dragging" : "") +
+              (vi === overIndex && dragIndex !== null && vi !== dragIndex
                 ? " qrow--over"
                 : "")
             }
             draggable
             onDragStart={(e) => {
-              setDragIndex(i);
+              setDragIndex(vi);
               setTrackDrag(e, track);
             }}
             onDragEnd={endDrag}
             onDragOver={(e) => {
               e.preventDefault();
-              if (dragIndex !== null) setOverIndex(i);
+              if (dragIndex !== null) setOverIndex(vi);
             }}
-            onDrop={(e) => onRowDrop(i, e)}
+            onDrop={(e) => onRowDrop(vi, e)}
           >
             <span
               className="qrow__grip"
@@ -129,7 +135,10 @@ export default function QueuePanel({
             >
               <Icon name="grip" size={14} />
             </span>
-            <button className="qrow__main" onClick={() => jumpTo(i)}>
+            <button
+              className="qrow__main"
+              onClick={() => jumpTo(index + vi)}
+            >
               <img src={track.thumbnail ?? ""} alt="" loading="lazy" />
               <span className="qrow__text">
                 <span className="qrow__title">{track.title}</span>
@@ -160,7 +169,10 @@ export default function QueuePanel({
                   filled={isSaved(track.id, library)}
                 />
               </button>
-              <button onClick={() => removeAt(i)} aria-label="Quitar de la cola">
+              <button
+                onClick={() => removeAt(index + vi)}
+                aria-label="Quitar de la cola"
+              >
                 <Icon name="x" size={13} />
               </button>
             </div>

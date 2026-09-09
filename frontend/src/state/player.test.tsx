@@ -1,14 +1,22 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Track } from "../types";
-import { PlayerProvider, usePlayer } from "./player";
+import { PlayerProvider, resetPlayerQueue, usePlayer } from "./player";
 
 const track = (id: string): Track => ({ id, title: id, artists: [] });
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <PlayerProvider>{children}</PlayerProvider>
 );
+
+beforeEach(() => {
+  try {
+    localStorage.clear();
+  } catch {
+    /* ignore */
+  }
+});
 
 describe("player queue", () => {
   it("enqueue drops the track right after the current one", () => {
@@ -73,5 +81,41 @@ describe("player queue", () => {
     const before = result.current.queue;
     act(() => result.current.shuffle());
     expect(result.current.queue).toBe(before);
+  });
+
+  it("persists the queue and restores it on a fresh provider (reload)", () => {
+    const first = renderHook(() => usePlayer(), { wrapper });
+    act(() =>
+      first.result.current.playList(
+        [track("a"), track("b"), track("c")],
+        1,
+      ),
+    );
+    first.unmount();
+
+    const { result } = renderHook(() => usePlayer(), { wrapper });
+    expect(result.current.queue.map((t) => t.id)).toEqual(["a", "b", "c"]);
+    expect(result.current.index).toBe(1);
+    expect(result.current.current?.id).toBe("b");
+  });
+
+  it("resetPlayerQueue clears the persisted queue", () => {
+    const { result } = renderHook(() => usePlayer(), { wrapper });
+    act(() => result.current.playList([track("a")], 0));
+    expect(localStorage.getItem("resonar:queue")).not.toBeNull();
+
+    act(() => resetPlayerQueue());
+    expect(result.current.queue).toEqual([]);
+    expect(localStorage.getItem("resonar:queue")).toBeNull();
+  });
+
+  it("a finished track stays in the queue so prev can go back to it", () => {
+    const { result } = renderHook(() => usePlayer(), { wrapper });
+    act(() => result.current.playList([track("a"), track("b")], 0));
+    act(() => result.current.next()); // "a" finished
+    expect(result.current.current?.id).toBe("b");
+    expect(result.current.queue.map((t) => t.id)).toEqual(["a", "b"]);
+    act(() => result.current.prev());
+    expect(result.current.current?.id).toBe("a");
   });
 });
