@@ -17,7 +17,7 @@ export default function AlbumView({
 }) {
   const [album, setAlbum] = useState<Album | null>(null);
   const [failed, setFailed] = useState(false);
-  const { playList, appendMany } = usePlayer();
+  const { playList, queueNext } = usePlayer();
 
   const tracks = album?.tracks ?? [];
   const { activeIndex, containerRef } = useListKeyboard(
@@ -92,7 +92,7 @@ export default function AlbumView({
                 <button
                   className="btn btn--ghost"
                   disabled={!album.tracks.length}
-                  onClick={() => appendMany(album.tracks)}
+                  onClick={() => queueNext(album.tracks)}
                   title="Añadir todas a la cola"
                 >
                   <Icon name="queue" size={14} /> A la cola

@@ -140,6 +140,12 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     const video = document.createElement("video");
     video.setAttribute("playsinline", "");
     video.playsInline = true;
+    // The persistent node gets moved between the watch stage and the floating
+    // widget. Native Picture-in-Picture (a separate OS window) fights that —
+    // switching tabs would leave a PiP window AND the in-app widget, then
+    // closing one froze the other. We do our own mini-player, so kill PiP.
+    video.setAttribute("disablepictureinpicture", "");
+    video.disablePictureInPicture = true;
     box.appendChild(video);
     holder.appendChild(box);
     boxRef.current = box;
@@ -155,7 +161,6 @@ export function VideoProvider({ children }: { children: ReactNode }) {
         "mute",
         "volume",
         "settings",
-        "pip",
         "fullscreen",
       ],
       settings: ["speed"],
@@ -173,6 +178,13 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     player.on("pause", () => setPaused(true));
     player.on("ended", () => setPaused(true));
 
+    // Safety net: if anything (e.g. a browser's automatic PiP on tab switch)
+    // still puts the video in Picture-in-Picture, bounce it straight back.
+    const onEnterPip = () => {
+      document.exitPictureInPicture?.().catch(() => {});
+    };
+    video.addEventListener("enterpictureinpicture", onEnterPip);
+
     const offClaim = onPlaybackClaim((kind) => {
       if (kind !== "video") video.pause();
     });
@@ -181,6 +193,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
     return () => {
       offClaim();
+      video.removeEventListener("enterpictureinpicture", onEnterPip);
       setVideoActive(false);
       player.destroy();
       box.remove();

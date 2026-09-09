@@ -11,13 +11,42 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe("player queue", () => {
-  it("enqueue appends to the end without changing what's playing", () => {
+  it("enqueue drops the track right after the current one", () => {
+    const { result } = renderHook(() => usePlayer(), { wrapper });
+
+    act(() => result.current.playList([track("a"), track("b"), track("c")], 1));
+    // playing "b" (index 1)
+    act(() => result.current.enqueue(track("x")));
+
+    expect(result.current.queue.map((t) => t.id)).toEqual([
+      "a",
+      "b",
+      "x",
+      "c",
+    ]);
+    expect(result.current.current?.id).toBe("b");
+    expect(result.current.index).toBe(1);
+  });
+
+  it("queueNext inserts several tracks after the current one, in order", () => {
     const { result } = renderHook(() => usePlayer(), { wrapper });
 
     act(() => result.current.playList([track("a"), track("b")], 0));
-    act(() => result.current.enqueue(track("c")));
+    act(() => result.current.queueNext([track("x"), track("y")]));
 
-    expect(result.current.queue.map((t) => t.id)).toEqual(["a", "b", "c"]);
+    expect(result.current.queue.map((t) => t.id)).toEqual([
+      "a",
+      "x",
+      "y",
+      "b",
+    ]);
+    expect(result.current.current?.id).toBe("a");
+  });
+
+  it("enqueue into an empty queue starts playing it", () => {
+    const { result } = renderHook(() => usePlayer(), { wrapper });
+    act(() => result.current.enqueue(track("a")));
+    expect(result.current.queue.map((t) => t.id)).toEqual(["a"]);
     expect(result.current.current?.id).toBe("a");
   });
 

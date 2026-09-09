@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { type DragEvent, useState } from "react";
 
 import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { usePlayer } from "../state/player";
-import { setTrackDrag } from "../lib/dnd";
+import { hasTrackDrag, readTrackDrag, setTrackDrag } from "../lib/dnd";
 import AddToPlaylistButton from "./AddToPlaylistButton";
 import ArtistLinks from "./ArtistLinks";
 import Icon from "./Icon";
@@ -14,25 +14,40 @@ export default function QueuePanel({
   open: boolean;
   onClose: () => void;
 }) {
-  const { queue, index, jumpTo, removeAt, move, shuffle } = usePlayer();
+  const { queue, index, jumpTo, removeAt, move, shuffle, enqueue } = usePlayer();
   const library = useLibrary();
 
+  // Reordering an existing row: this holds its index. External drags (a track
+  // dragged in from a list) leave it null.
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [dropHot, setDropHot] = useState(false);
 
   function endDrag() {
     setDragIndex(null);
     setOverIndex(null);
+    setDropHot(false);
   }
 
-  function onDrop(to: number) {
-    if (dragIndex !== null && dragIndex !== to) move(dragIndex, to);
+  function onRowDrop(to: number, e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragIndex !== null) {
+      if (dragIndex !== to) move(dragIndex, to);
+    } else {
+      const track = readTrackDrag(e);
+      if (track) enqueue(track);
+    }
     endDrag();
   }
 
   return (
     <aside
-      className={"drawer" + (open ? " drawer--open" : "")}
+      className={
+        "drawer" +
+        (open ? " drawer--open" : "") +
+        (dropHot ? " drawer--drop" : "")
+      }
       role="complementary"
       aria-label="Cola de reproducción"
       aria-hidden={!open}
@@ -54,9 +69,34 @@ export default function QueuePanel({
         </div>
       </header>
 
-      <div className="drawer__list">
+      <div
+        className="drawer__list"
+        onDragOver={(e) => {
+          // Allow dropping a track dragged in from a list.
+          if (dragIndex === null && hasTrackDrag(e)) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            setDropHot(true);
+          }
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node))
+            setDropHot(false);
+        }}
+        onDrop={(e) => {
+          if (dragIndex !== null) return; // a row handler took it
+          const track = readTrackDrag(e);
+          if (track) {
+            e.preventDefault();
+            enqueue(track);
+          }
+          endDrag();
+        }}
+      >
         {queue.length === 0 && (
-          <p className="drawer__empty">La cola está vacía.</p>
+          <p className="drawer__empty">
+            La cola está vacía. Arrastra canciones aquí o usa el botón de cola.
+          </p>
         )}
 
         {queue.map((track, i) => (
@@ -80,10 +120,7 @@ export default function QueuePanel({
               e.preventDefault();
               if (dragIndex !== null) setOverIndex(i);
             }}
-            onDrop={(e) => {
-              e.preventDefault();
-              onDrop(i);
-            }}
+            onDrop={(e) => onRowDrop(i, e)}
           >
             <span
               className="qrow__grip"

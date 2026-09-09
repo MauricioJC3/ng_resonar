@@ -22,6 +22,13 @@
   border-left-width: 1px;
 }
 
+/* A track is being dragged in from a list. */
+.drawer--drop .drawer__list {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+  border-radius: 12px;
+}
+
 /* Fade the contents so a fast open/collapse doesn't look abrupt. */
 .drawer > * {
   opacity: 0;

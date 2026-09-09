@@ -22,7 +22,7 @@ export default function ArtistView({
   const [artist, setArtist] = useState<Artist | null>(null);
   const [failed, setFailed] = useState(false);
   const [allSongs, setAllSongs] = useState(false);
-  const { playList, appendMany } = usePlayer();
+  const { playList, queueNext } = usePlayer();
 
   const shownSongs = artist
     ? allSongs
@@ -120,7 +120,7 @@ export default function ArtistView({
                   </button>
                   <button
                     className="btn btn--ghost"
-                    onClick={() => appendMany(artist.topSongs)}
+                    onClick={() => queueNext(artist.topSongs)}
                     title="Añadir a la cola"
                   >
                     <Icon name="queue" size={14} /> A la cola

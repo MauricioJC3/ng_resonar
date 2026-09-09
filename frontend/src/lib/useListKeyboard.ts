@@ -45,7 +45,9 @@ export function useListKeyboard(
       )
         return true;
       if (isVideoActive()) return true;
-      if (document.querySelector(".drawer")) return true;
+      // A drawer that's actually open (the queue is now always in the DOM, just
+      // collapsed) or the lyrics panel takes the arrow keys.
+      if (document.querySelector(".drawer--open, .lyrics")) return true;
       return false;
     };
 

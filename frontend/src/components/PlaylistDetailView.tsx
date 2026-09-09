@@ -33,7 +33,7 @@ export default function PlaylistDetailView({
   onBack: () => void;
 }) {
   const pl = usePlaylist(id);
-  const { playList, appendMany } = usePlayer();
+  const { playList, queueNext } = usePlayer();
   const [batch, setBatch] = useState<Batch>({ state: "idle" });
   const pollRef = useRef<number>();
 
@@ -120,7 +120,7 @@ export default function PlaylistDetailView({
             <button
               className="btn btn--ghost"
               disabled={!pl.tracks.length}
-              onClick={() => appendMany(pl.tracks)}
+              onClick={() => queueNext(pl.tracks)}
               title="Añadir todas a la cola"
             >
               <Icon name="queue" size={14} /> A la cola

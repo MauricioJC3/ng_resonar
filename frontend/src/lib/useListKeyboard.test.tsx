@@ -48,6 +48,34 @@ describe("useListKeyboard", () => {
     expect(onActivate).not.toHaveBeenCalled();
   });
 
+  it("still works when a collapsed (not open) queue panel is in the DOM", () => {
+    // Regression: the queue drawer is now always mounted, just collapsed. The
+    // hook must only stand down for an *open* drawer.
+    const onActivate = vi.fn();
+    const closed = document.createElement("aside");
+    closed.className = "drawer";
+    document.body.appendChild(closed);
+
+    const { result } = renderHook(() => useListKeyboard(3, onActivate));
+    press("ArrowDown");
+    expect(result.current.activeIndex).toBe(0);
+    press("Enter");
+    expect(onActivate).toHaveBeenCalledWith(0);
+  });
+
+  it("stands down while the queue panel is open", () => {
+    const onActivate = vi.fn();
+    const openDrawer = document.createElement("aside");
+    openDrawer.className = "drawer drawer--open";
+    document.body.appendChild(openDrawer);
+
+    const { result } = renderHook(() => useListKeyboard(3, onActivate));
+    press("ArrowDown");
+    press("Enter");
+    expect(result.current.activeIndex).toBe(-1);
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
   it("drops a stale highlight when the list shrinks", () => {
     const onActivate = vi.fn();
     const { result, rerender } = renderHook(

@@ -24,6 +24,7 @@ type Action =
   | { type: "prev" }
   | { type: "jumpTo"; index: number }
   | { type: "enqueue"; track: Track }
+  | { type: "queueNext"; tracks: Track[] }
   | { type: "appendMany"; tracks: Track[] }
   | { type: "removeAt"; at: number }
   | { type: "move"; from: number; to: number }
@@ -52,7 +53,26 @@ function reducer(state: State, action: Action): State {
       return { ...state, index: clampIndex(action.index, state.queue.length) };
 
     case "enqueue":
-      return { ...state, queue: [...state.queue, action.track] };
+    case "queueNext": {
+      const tracks =
+        action.type === "enqueue" ? [action.track] : action.tracks;
+      if (tracks.length === 0) return state;
+      // Empty queue: this becomes the queue and starts playing.
+      if (state.queue.length === 0) {
+        return { ...state, queue: [...tracks], index: 0 };
+      }
+      // Otherwise drop them right after whatever is playing (Spotify-style),
+      // leaving the current track and index untouched.
+      const at = state.index + 1;
+      return {
+        ...state,
+        queue: [
+          ...state.queue.slice(0, at),
+          ...tracks,
+          ...state.queue.slice(at),
+        ],
+      };
+    }
 
     case "appendMany": {
       const have = new Set(state.queue.map((t) => t.id));
@@ -127,7 +147,10 @@ interface PlayerApi {
   next: () => void;
   prev: () => void;
   jumpTo: (index: number) => void;
+  /** Add one track right after the current one. */
   enqueue: (track: Track) => void;
+  /** Add several tracks right after the current one, in order. */
+  queueNext: (tracks: Track[]) => void;
   appendMany: (tracks: Track[]) => void;
   removeAt: (at: number) => void;
   move: (from: number, to: number) => void;
@@ -179,6 +202,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       prev: () => dispatch({ type: "prev" }),
       jumpTo: (index) => dispatch({ type: "jumpTo", index }),
       enqueue: (track) => dispatch({ type: "enqueue", track }),
+      queueNext: (tracks) => dispatch({ type: "queueNext", tracks }),
       appendMany: (tracks) => dispatch({ type: "appendMany", tracks }),
       removeAt: (at) => dispatch({ type: "removeAt", at }),
       move: (from, to) => dispatch({ type: "move", from, to }),
