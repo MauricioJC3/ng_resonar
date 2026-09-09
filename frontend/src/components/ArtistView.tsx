@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { getArtist } from "../api";
 import type { AlbumCard, Artist } from "../types";
 import { usePlayer } from "../state/player";
+import { useLibraryForArtist } from "../state/libraryArtist";
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { shuffled } from "../lib/shuffle";
 import Icon from "./Icon";
+import LibraryForArtist from "./LibraryForArtist";
 import TrackRow from "./TrackRow";
 
 const TOP_SONGS = 10;
@@ -14,15 +16,18 @@ export default function ArtistView({
   browseId,
   onBack,
   onOpenAlbum,
+  onOpenPlaylist,
 }: {
   browseId: string;
   onBack: () => void;
   onOpenAlbum: (browseId: string) => void;
+  onOpenPlaylist?: (id: string) => void;
 }) {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [failed, setFailed] = useState(false);
   const [allSongs, setAllSongs] = useState(false);
   const { playList, queueNext } = usePlayer();
+  const mine = useLibraryForArtist(artist?.name);
 
   const shownSongs = artist
     ? allSongs
@@ -129,6 +134,8 @@ export default function ArtistView({
               )}
             </div>
           </div>
+
+          <LibraryForArtist match={mine} onOpenPlaylist={onOpenPlaylist} />
 
           {artist.topSongs.length > 0 && (
             <>

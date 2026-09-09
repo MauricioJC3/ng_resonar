@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { homeMusic, search, searchAlbums, searchArtists } from "../api";
 import type { Track } from "../types";
 import { usePlayer } from "../state/player";
+import { useLibraryForArtist } from "../state/libraryArtist";
 import {
   clearPendingSearch,
   musicHistoryGo,
@@ -12,15 +13,18 @@ import {
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { swapWithTransition } from "../lib/viewTransition";
 import Icon from "./Icon";
+import LibraryForArtist from "./LibraryForArtist";
 import SearchBox from "./SearchBox";
 import TrackRow from "./TrackRow";
 
 export default function SearchView({
   onOpenArtist,
   onOpenAlbum,
+  onOpenPlaylist,
 }: {
   onOpenArtist: (browseId: string) => void;
   onOpenAlbum: (browseId: string) => void;
+  onOpenPlaylist?: (id: string) => void;
 }) {
   const { music, pending } = useSearchStore();
   const [home, setHome] = useState<Track[]>([]);
@@ -86,6 +90,9 @@ export default function SearchView({
   const canBack = music.cursor > 0;
   const canForward = music.cursor < music.history.length - 1;
 
+  // Your own saved / playlisted songs matching what you searched for.
+  const mine = useLibraryForArtist(status === "idle" ? music.query : null);
+
   return (
     <div className="view">
       <div className="searchrow">
@@ -136,6 +143,14 @@ export default function SearchView({
       {nothing && <p className="hint">Sin resultados.</p>}
 
       <div className="searchresults" ref={resultsRef}>
+        {status === "idle" && (
+          <LibraryForArtist
+            match={mine}
+            limit={4}
+            onOpenPlaylist={onOpenPlaylist}
+          />
+        )}
+
         {status === "idle" && music.artists.length > 0 && (
           <>
             <h2 className="view__subhead">Artistas</h2>

@@ -209,6 +209,7 @@ export default function AuthedApp({
         browseId={openArtist}
         onBack={back}
         onOpenAlbum={openAlbumDetail}
+        onOpenPlaylist={openPlaylistDetail}
       />
     );
   } else if (openAlbum) {
@@ -222,6 +223,7 @@ export default function AuthedApp({
       <SearchView
         onOpenArtist={openArtistDetail}
         onOpenAlbum={openAlbumDetail}
+        onOpenPlaylist={openPlaylistDetail}
       />
     );
   } else if (view === "videos") {
