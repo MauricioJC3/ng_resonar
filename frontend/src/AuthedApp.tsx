@@ -13,6 +13,7 @@ import AlbumView from "./components/AlbumView";
 import ArtistView from "./components/ArtistView";
 import SettingsView from "./components/SettingsView";
 import WatchView from "./components/WatchView";
+import LibraryArtistView from "./components/LibraryArtistView";
 import PlayerBar from "./components/PlayerBar";
 import MiniVideo from "./components/MiniVideo";
 import ScrollTop from "./components/ScrollTop";
@@ -29,6 +30,8 @@ interface NavState {
   openPlaylist: string | null;
   openAlbum: string | null;
   openArtist: string | null;
+  /** Name of the artist whose "En tu biblioteca" view is open. */
+  openLibArtist: string | null;
 }
 
 const DEFAULT_STATE: NavState = {
@@ -37,6 +40,7 @@ const DEFAULT_STATE: NavState = {
   openPlaylist: null,
   openAlbum: null,
   openArtist: null,
+  openLibArtist: null,
 };
 
 function prefersReducedMotion(): boolean {
@@ -71,6 +75,9 @@ export default function AuthedApp({
   const [openArtist, setOpenArtist] = useState<string | null>(
     DEFAULT_STATE.openArtist,
   );
+  const [openLibArtist, setOpenLibArtist] = useState<string | null>(
+    DEFAULT_STATE.openLibArtist,
+  );
 
   const mainRef = useRef<HTMLElement>(null);
 
@@ -81,6 +88,7 @@ export default function AuthedApp({
     setOpenPlaylist(s.openPlaylist);
     setOpenAlbum(s.openAlbum);
     setOpenArtist(s.openArtist);
+    setOpenLibArtist(s.openLibArtist);
   }, []);
 
   // True while a View Transition started here is still running. A second
@@ -147,6 +155,7 @@ export default function AuthedApp({
         openPlaylist: s?.openPlaylist ?? DEFAULT_STATE.openPlaylist,
         openAlbum: s?.openAlbum ?? DEFAULT_STATE.openAlbum,
         openArtist: s?.openArtist ?? DEFAULT_STATE.openArtist,
+        openLibArtist: s?.openLibArtist ?? DEFAULT_STATE.openLibArtist,
       });
     };
     window.addEventListener("popstate", onPop);
@@ -179,6 +188,12 @@ export default function AuthedApp({
     [go],
   );
 
+  const openLibraryArtist = useCallback(
+    (name: string) =>
+      go({ ...DEFAULT_STATE, view: "search", openLibArtist: name }),
+    [go],
+  );
+
   const openSearchQuery = useCallback(
     (q: string) => {
       requestSearch(q);
@@ -203,13 +218,21 @@ export default function AuthedApp({
   let content;
   if (watching) {
     content = <WatchView video={watching} onClose={back} onWatch={watch} />;
+  } else if (openLibArtist) {
+    content = (
+      <LibraryArtistView
+        name={openLibArtist}
+        onBack={back}
+        onOpenPlaylist={openPlaylistDetail}
+      />
+    );
   } else if (openArtist) {
     content = (
       <ArtistView
         browseId={openArtist}
         onBack={back}
         onOpenAlbum={openAlbumDetail}
-        onOpenPlaylist={openPlaylistDetail}
+        onOpenLibArtist={openLibraryArtist}
       />
     );
   } else if (openAlbum) {
@@ -223,7 +246,7 @@ export default function AuthedApp({
       <SearchView
         onOpenArtist={openArtistDetail}
         onOpenAlbum={openAlbumDetail}
-        onOpenPlaylist={openPlaylistDetail}
+        onOpenLibArtist={openLibraryArtist}
       />
     );
   } else if (view === "videos") {

@@ -16,12 +16,12 @@ export default function ArtistView({
   browseId,
   onBack,
   onOpenAlbum,
-  onOpenPlaylist,
+  onOpenLibArtist,
 }: {
   browseId: string;
   onBack: () => void;
   onOpenAlbum: (browseId: string) => void;
-  onOpenPlaylist?: (id: string) => void;
+  onOpenLibArtist: (name: string) => void;
 }) {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [failed, setFailed] = useState(false);
@@ -135,7 +135,7 @@ export default function ArtistView({
             </div>
           </div>
 
-          <LibraryForArtist match={mine} onOpenPlaylist={onOpenPlaylist} />
+          <LibraryForArtist match={mine} onOpen={onOpenLibArtist} />
 
           {artist.topSongs.length > 0 && (
             <>

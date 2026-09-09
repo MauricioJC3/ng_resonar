@@ -18,13 +18,23 @@ export function normName(s: string): string {
  * 3 chars (so "bunny" finds "Bad Bunny" but a 1-letter query doesn't match
  * everything).
  */
-export function trackByArtist(track: Track, target: string): boolean {
+function oneMatches(name: string, target: string): boolean {
+  const n = normName(name);
   const t = normName(target);
-  if (!t) return false;
-  return (track.artists ?? []).some((a) => {
-    const n = normName(a);
-    if (!n) return false;
-    if (n === t) return true;
-    return t.length >= 3 && n.length >= 3 && (n.includes(t) || t.includes(n));
-  });
+  if (!n || !t) return false;
+  if (n === t) return true;
+  return t.length >= 3 && n.length >= 3 && (n.includes(t) || t.includes(n));
+}
+
+export function trackByArtist(track: Track, target: string): boolean {
+  if (!normName(target)) return false;
+  return (track.artists ?? []).some((a) => oneMatches(a, target));
+}
+
+/**
+ * The artist name (as written on the track) that matched `target` — used to
+ * show a properly-cased label instead of whatever the user typed.
+ */
+export function matchingArtistName(track: Track, target: string): string | null {
+  return (track.artists ?? []).find((a) => oneMatches(a, target)) ?? null;
 }

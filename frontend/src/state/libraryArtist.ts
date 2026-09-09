@@ -1,13 +1,15 @@
 import { useMemo } from "react";
 
 import type { Track } from "../types";
-import { trackByArtist } from "../lib/libraryMatch";
+import { matchingArtistName, trackByArtist } from "../lib/libraryMatch";
 import { useLibrary } from "./library";
 import { useAllPlaylistDetails } from "./playlists";
 
 export interface LibraryArtistMatch {
   /** Deduped: the user's saved + playlisted tracks by this artist. */
   tracks: Track[];
+  /** Properly-cased artist name from a matched track (falls back to the query). */
+  displayName: string;
   /** How many of `tracks` are in favourites. */
   savedCount: number;
   /** Which playlists hold tracks by this artist, and how many. */
@@ -16,6 +18,7 @@ export interface LibraryArtistMatch {
 
 const EMPTY: LibraryArtistMatch = {
   tracks: [],
+  displayName: "",
   savedCount: 0,
   inPlaylists: [],
 };
@@ -36,10 +39,16 @@ export function useLibraryForArtist(
 
     const byId = new Map<string, Track>();
     let savedCount = 0;
+    let displayName = "";
+    const seeName = (t: Track) => {
+      if (!displayName) displayName = matchingArtistName(t, name) ?? "";
+    };
+
     for (const t of favourites) {
       if (trackByArtist(t, name)) {
         byId.set(t.id, t);
         savedCount += 1;
+        seeName(t);
       }
     }
 
@@ -49,6 +58,7 @@ export function useLibraryForArtist(
       for (const t of pl.tracks) {
         if (trackByArtist(t, name)) {
           count += 1;
+          seeName(t);
           if (!byId.has(t.id)) byId.set(t.id, t);
         }
       }
@@ -56,6 +66,11 @@ export function useLibraryForArtist(
     }
 
     if (byId.size === 0) return EMPTY;
-    return { tracks: [...byId.values()], savedCount, inPlaylists };
+    return {
+      tracks: [...byId.values()],
+      displayName: displayName || name,
+      savedCount,
+      inPlaylists,
+    };
   }, [favourites, playlists, name]);
 }

@@ -57,6 +57,8 @@ describe("useLibraryForArtist", () => {
     expect(result.current.inPlaylists).toEqual([
       { id: "p1", name: "Chill", count: 2 },
     ]);
+    // Properly-cased name lifted off a matched track, not the lowercase query.
+    expect(result.current.displayName).toBe("Eyedress");
   });
 
   it("returns empty when nothing matches", () => {

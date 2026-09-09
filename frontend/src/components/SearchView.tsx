@@ -20,11 +20,11 @@ import TrackRow from "./TrackRow";
 export default function SearchView({
   onOpenArtist,
   onOpenAlbum,
-  onOpenPlaylist,
+  onOpenLibArtist,
 }: {
   onOpenArtist: (browseId: string) => void;
   onOpenAlbum: (browseId: string) => void;
-  onOpenPlaylist?: (id: string) => void;
+  onOpenLibArtist: (name: string) => void;
 }) {
   const { music, pending } = useSearchStore();
   const [home, setHome] = useState<Track[]>([]);
@@ -144,11 +144,7 @@ export default function SearchView({
 
       <div className="searchresults" ref={resultsRef}>
         {status === "idle" && (
-          <LibraryForArtist
-            match={mine}
-            limit={4}
-            onOpenPlaylist={onOpenPlaylist}
-          />
+          <LibraryForArtist match={mine} onOpen={onOpenLibArtist} />
         )}
 
         {status === "idle" && music.artists.length > 0 && (

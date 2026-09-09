@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Track } from "../types";
-import { normName, trackByArtist } from "./libraryMatch";
+import { matchingArtistName, normName, trackByArtist } from "./libraryMatch";
 
 const t = (artists: string[]): Track => ({
   id: artists.join("|"),
@@ -37,5 +37,14 @@ describe("trackByArtist", () => {
 
   it("checks every listed artist", () => {
     expect(trackByArtist(t(["J Balvin", "Eyedress"]), "eyedress")).toBe(true);
+  });
+});
+
+describe("matchingArtistName", () => {
+  it("returns the artist name as written on the track", () => {
+    expect(matchingArtistName(t(["J Balvin", "Eyedress"]), "eyedress")).toBe(
+      "Eyedress",
+    );
+    expect(matchingArtistName(t(["Shakira"]), "eyedress")).toBeNull();
   });
 });

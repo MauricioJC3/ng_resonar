@@ -7,11 +7,75 @@
   border-radius: 12px;
 }
 
-/* "En tu biblioteca" — the user's own tracks by an artist. */
-.libartist {
-  margin-bottom: 6px;
+/* "En tu biblioteca" — compact card that opens the full list. */
+.libcard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin: 4px 0 22px;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-elev);
+  text-align: left;
+  transition:
+    border-color var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard);
 }
 
+.libcard:hover {
+  border-color: var(--accent);
+  background: var(--bg-elev-2);
+}
+
+.libcard__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.libcard__text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.libcard__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.libcard__sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.libcard__chev {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transform: scaleX(-1);
+}
+
+.pldetail__art--lib {
+  color: var(--accent);
+  background: var(--accent-wash);
+}
+
+/* Tag row for the "En tu biblioteca" full view. */
 .libartist__meta {
   display: flex;
   flex-wrap: wrap;

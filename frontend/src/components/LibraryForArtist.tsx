@@ -1,73 +1,47 @@
 import type { LibraryArtistMatch } from "../state/libraryArtist";
-import { usePlayer } from "../state/player";
-import TrackRow from "./TrackRow";
+import Icon from "./Icon";
 
 /**
- * "En tu biblioteca" — the user's own saved / playlisted tracks by an artist.
- * Renders nothing when there are no matches. Used on the artist page and, with
- * a `limit`, as a compact strip above the search results.
+ * Compact entry point to the user's own tracks by an artist. Renders nothing
+ * when there are no matches; otherwise a single card that opens the full
+ * "En tu biblioteca" list (Spotify-style — never an inline list that could grow
+ * to dozens of rows).
  */
 export default function LibraryForArtist({
   match,
-  limit,
-  onOpenPlaylist,
+  onOpen,
 }: {
   match: LibraryArtistMatch;
-  limit?: number;
-  onOpenPlaylist?: (id: string) => void;
+  onOpen: (name: string) => void;
 }) {
-  const { playList } = usePlayer();
-
   if (match.tracks.length === 0) return null;
 
-  const shown =
-    limit && match.tracks.length > limit
-      ? match.tracks.slice(0, limit)
-      : match.tracks;
-  const hidden = match.tracks.length - shown.length;
+  const n = match.tracks.length;
+  const bits: string[] = [`${n} ${n === 1 ? "canción" : "canciones"}`];
+  if (match.savedCount > 0) bits.push(`${match.savedCount} en favoritos`);
+  if (match.inPlaylists.length > 0) {
+    const p = match.inPlaylists.length;
+    bits.push(`${p} playlist${p === 1 ? "" : "s"}`);
+  }
 
   return (
-    <section className="libartist">
-      <h2 className="view__subhead">En tu biblioteca</h2>
-      <div className="tracklist">
-        {shown.map((track, i) => (
-          <TrackRow
-            key={track.id + i}
-            track={track}
-            index={i}
-            onPlay={() => playList(match.tracks, i)}
-          />
-        ))}
-      </div>
-
-      {(match.savedCount > 0 || match.inPlaylists.length > 0 || hidden > 0) && (
-        <p className="libartist__meta">
-          {match.savedCount > 0 && (
-            <span className="libartist__tag">
-              {match.savedCount} en favoritos
-            </span>
-          )}
-          {match.inPlaylists.map((p) =>
-            onOpenPlaylist ? (
-              <button
-                key={p.id}
-                type="button"
-                className="libartist__tag libartist__tag--link"
-                onClick={() => onOpenPlaylist(p.id)}
-              >
-                {p.name} · {p.count}
-              </button>
-            ) : (
-              <span key={p.id} className="libartist__tag">
-                {p.name} · {p.count}
-              </span>
-            ),
-          )}
-          {hidden > 0 && (
-            <span className="libartist__tag">+{hidden} más</span>
-          )}
-        </p>
-      )}
-    </section>
+    <button
+      type="button"
+      className="libcard"
+      onClick={() => onOpen(match.displayName)}
+    >
+      <span className="libcard__icon">
+        <Icon name="heart" size={18} filled />
+      </span>
+      <span className="libcard__text">
+        <span className="libcard__title">
+          Tus canciones de {match.displayName}
+        </span>
+        <span className="libcard__sub">{bits.join(" · ")}</span>
+      </span>
+      <span className="libcard__chev" aria-hidden="true">
+        <Icon name="back" size={16} />
+      </span>
+    </button>
   );
 }
