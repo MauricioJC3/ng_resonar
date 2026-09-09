@@ -34,7 +34,7 @@ export default function ArtistView({
       ? artist.topSongs
       : artist.topSongs.slice(0, TOP_SONGS)
     : [];
-  const { activeIndex, containerRef } = useListKeyboard(
+  const { activeIndex, listRef } = useListKeyboard(
     shownSongs.length,
     (i) => {
       if (artist) playList(artist.topSongs, i);
@@ -142,9 +142,7 @@ export default function ArtistView({
               <h2 className="view__subhead">Populares</h2>
               <div
                 className="tracklist"
-                ref={(el) => {
-                  containerRef.current = el;
-                }}
+                ref={listRef}
               >
                 {shownSongs.map((track, i) => (
                   <TrackRow

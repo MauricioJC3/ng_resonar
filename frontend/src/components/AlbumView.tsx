@@ -20,7 +20,7 @@ export default function AlbumView({
   const { playList, queueNext } = usePlayer();
 
   const tracks = album?.tracks ?? [];
-  const { activeIndex, containerRef } = useListKeyboard(
+  const { activeIndex, listRef } = useListKeyboard(
     tracks.length,
     (i) => playList(tracks, i),
   );
@@ -108,9 +108,7 @@ export default function AlbumView({
           ) : (
             <div
               className="tracklist"
-              ref={(el) => {
-                containerRef.current = el;
-              }}
+              ref={listRef}
             >
               {album.tracks.map((track, i) => (
                 <TrackRow

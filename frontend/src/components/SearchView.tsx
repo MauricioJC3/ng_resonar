@@ -83,7 +83,7 @@ export default function SearchView({
     music.artists.length === 0 &&
     music.albums.length === 0;
 
-  const { activeIndex, containerRef } = useListKeyboard(songs.length, (i) =>
+  const { activeIndex, listRef } = useListKeyboard(songs.length, (i) =>
     playList(songs, i),
   );
 
@@ -205,9 +205,7 @@ export default function SearchView({
 
         <div
           className="tracklist"
-          ref={(el) => {
-            containerRef.current = el;
-          }}
+          ref={listRef}
         >
           {songs.map((track, i) => (
             <TrackRow

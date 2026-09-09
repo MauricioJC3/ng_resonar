@@ -132,7 +132,7 @@ export default function HistoryView({
   }
 
   const pageSongs = pageEntries.map(toTrack);
-  const { activeIndex, containerRef } = useListKeyboard(
+  const { activeIndex, listRef } = useListKeyboard(
     tab === "song" ? pageSongs.length : 0,
     (i) => playList(pageSongs, i),
   );
@@ -193,9 +193,7 @@ export default function HistoryView({
       {!loading && tab === "song" && pageEntries.length > 0 && (
         <div
           className="tracklist"
-          ref={(el) => {
-            containerRef.current = el;
-          }}
+          ref={listRef}
         >
           {pageSongs.map((track, i) => (
             <TrackRow

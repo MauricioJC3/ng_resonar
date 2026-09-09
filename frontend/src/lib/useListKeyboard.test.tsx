@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useListKeyboard } from "./useListKeyboard";
@@ -7,6 +7,27 @@ function press(key: string) {
   act(() => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
   });
+}
+
+function List({
+  count,
+  onActivate,
+}: {
+  count: number;
+  onActivate: (i: number) => void;
+}) {
+  const { activeIndex, listRef } = useListKeyboard(count, onActivate);
+  return (
+    <ul ref={listRef}>
+      {Array.from({ length: count }, (_, i) => (
+        <li key={i} data-active={i === activeIndex || undefined}>
+          <button type="button" onClick={() => onActivate(i)}>
+            row {i}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 afterEach(() => {
@@ -87,6 +108,24 @@ describe("useListKeyboard", () => {
     press("Enter");
     expect(result.current.activeIndex).toBe(-1);
     expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it("clicking a row selects it, and an arrow key then moves from there and drops focus", () => {
+    const onActivate = vi.fn();
+    const { container } = render(<List count={5} onActivate={onActivate} />);
+    const rows = container.querySelectorAll("li");
+    const btn2 = rows[2].querySelector("button")!;
+
+    act(() => btn2.click());
+    expect(rows[2].getAttribute("data-active")).toBe("true");
+    expect(onActivate).toHaveBeenCalledWith(2);
+
+    btn2.focus();
+    press("ArrowDown");
+    expect(rows[3].getAttribute("data-active")).toBe("true");
+    expect(rows[2].getAttribute("data-active")).toBeNull();
+    // the clicked button no longer holds focus, so no lingering focus ring
+    expect(document.activeElement).not.toBe(btn2);
   });
 
   it("drops a stale highlight when the list shrinks", () => {

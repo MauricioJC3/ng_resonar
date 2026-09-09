@@ -21,7 +21,7 @@ export default function LibraryArtistView({
 }) {
   const mine = useLibraryForArtist(name);
   const { playList, queueNext } = usePlayer();
-  const { activeIndex, containerRef } = useListKeyboard(
+  const { activeIndex, listRef } = useListKeyboard(
     mine.tracks.length,
     (i) => playList(mine.tracks, i),
   );
@@ -106,9 +106,7 @@ export default function LibraryArtistView({
       ) : (
         <div
           className="tracklist"
-          ref={(el) => {
-            containerRef.current = el;
-          }}
+          ref={listRef}
         >
           {mine.tracks.map((track, i) => (
             <TrackRow
