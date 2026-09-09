@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-import { isVideoActive } from "../state/mediabus";
-
 /**
  * Roving keyboard selection over a list of rows (search results, an artist's
  * top songs, history…). ArrowDown / ArrowUp move a highlight, Enter activates
@@ -9,9 +7,10 @@ import { isVideoActive } from "../state/mediabus";
  *
  * Listens on `window` so it works right after a search without the user having
  * to focus the list, but stays out of the way while a text field is focused,
- * while the queue/lyrics drawer is open, or while a video is on screen (the
- * music/video shortcuts own the keyboard then). It only claims ArrowUp /
- * ArrowDown / Enter — never the Left/Right seek keys `PlayerBar` uses.
+ * while the queue / lyrics panel is open, or while the full video watch view is
+ * on screen (its player owns the keyboard then — the mini-player / PiP does
+ * not). It only claims ArrowUp / ArrowDown / Enter — never the Left/Right seek
+ * keys `PlayerBar` uses.
  *
  * Attach the returned `containerRef` to the element whose direct children are
  * the rows (one element per item); the hook scrolls the active row into view.
@@ -44,10 +43,10 @@ export function useListKeyboard(
           el.isContentEditable)
       )
         return true;
-      if (isVideoActive()) return true;
-      // A drawer that's actually open (the queue is now always in the DOM, just
-      // collapsed) or the lyrics panel takes the arrow keys.
-      if (document.querySelector(".drawer--open, .lyrics")) return true;
+      // The full watch view owns the keyboard; a backgrounded mini-player / PiP
+      // does not. The queue panel (always in the DOM, just collapsed) and the
+      // lyrics panel take the arrow keys while open.
+      if (document.querySelector(".watch, .drawer--open, .lyrics")) return true;
       return false;
     };
 

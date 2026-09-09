@@ -350,33 +350,32 @@ export default function PlayerBar() {
     restoringRef.current = false;
 
     audio.src = streamUrl(current.id);
-
-    // Resume the saved position for this exact track (reload).
-    try {
-      const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null") as {
-        id?: string;
-        t?: number;
-      } | null;
-      if (saved && saved.id === current.id && (saved.t ?? 0) > 3) {
-        const onMeta = () => {
-          try {
-            audio.currentTime = saved.t as number;
-          } catch {
-            /* ignore */
-          }
-          audio.removeEventListener("loadedmetadata", onMeta);
-        };
-        audio.addEventListener("loadedmetadata", onMeta);
-      }
-    } catch {
-      /* ignore */
-    }
-
     scrobbledRef.current = false;
 
     if (restoring) {
-      // Loaded ready-to-play; the browser blocks autoplay without a gesture and
-      // we don't want to re-log a play the user isn't actually making.
+      // Coming back from a hard reload: load ready-to-play at the saved spot,
+      // but DON'T autoplay (browser blocks it) or re-log the play. Only here do
+      // we resume a saved position — navigating to a track any other way
+      // (including "anterior" back to a finished song) must start it from 0.
+      try {
+        const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null") as {
+          id?: string;
+          t?: number;
+        } | null;
+        if (saved && saved.id === current.id && (saved.t ?? 0) > 3) {
+          const onMeta = () => {
+            try {
+              audio.currentTime = saved.t as number;
+            } catch {
+              /* ignore */
+            }
+            audio.removeEventListener("loadedmetadata", onMeta);
+          };
+          audio.addEventListener("loadedmetadata", onMeta);
+        }
+      } catch {
+        /* ignore */
+      }
     } else {
       audio.play().catch(() => {
         /* autoplay may be blocked until the first gesture */

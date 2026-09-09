@@ -76,6 +76,19 @@ describe("useListKeyboard", () => {
     expect(onActivate).not.toHaveBeenCalled();
   });
 
+  it("stands down while the full video watch view is on screen", () => {
+    const onActivate = vi.fn();
+    const watch = document.createElement("div");
+    watch.className = "view watch";
+    document.body.appendChild(watch);
+
+    const { result } = renderHook(() => useListKeyboard(3, onActivate));
+    press("ArrowDown");
+    press("Enter");
+    expect(result.current.activeIndex).toBe(-1);
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
   it("drops a stale highlight when the list shrinks", () => {
     const onActivate = vi.fn();
     const { result, rerender } = renderHook(
