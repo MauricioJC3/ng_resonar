@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -378,24 +379,44 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     };
   }, [closeVideo]);
 
-  const api: VideoApi = {
-    current,
-    loadState,
-    sbOn,
-    skipFlash,
-    isHD: !!isHD,
-    paused,
-    pip,
-    pipSupported,
-    togglePip,
-    playVideo,
-    closeVideo,
-    reload,
-    toggleSb,
-    togglePlay,
-    seekBy,
-    attachTo,
-  };
+  const api = useMemo<VideoApi>(
+    () => ({
+      current,
+      loadState,
+      sbOn,
+      skipFlash,
+      isHD: !!isHD,
+      paused,
+      pip,
+      pipSupported,
+      togglePip,
+      playVideo,
+      closeVideo,
+      reload,
+      toggleSb,
+      togglePlay,
+      seekBy,
+      attachTo,
+    }),
+    [
+      current,
+      loadState,
+      sbOn,
+      skipFlash,
+      isHD,
+      paused,
+      pip,
+      pipSupported,
+      togglePip,
+      playVideo,
+      closeVideo,
+      reload,
+      toggleSb,
+      togglePlay,
+      seekBy,
+      attachTo,
+    ],
+  );
 
   return (
     <VideoContext.Provider value={api}>
