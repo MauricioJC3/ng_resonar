@@ -5,13 +5,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: resonar
-      POSTGRES_PASSWORD: resonar
-      POSTGRES_DB: resonar
+      POSTGRES_USER: ${POSTGRES_USER:-resonar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resonar}
+      POSTGRES_DB: ${POSTGRES_DB:-resonar}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U resonar -d resonar"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resonar} -d ${POSTGRES_DB:-resonar}"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -30,21 +30,22 @@ services:
     restart: unless-stopped
     environment:
       REDIS_URL: redis://redis:6379/0
-      DATABASE_URL: postgresql+psycopg://resonar:resonar@db:5432/resonar
-      CORS_ORIGINS: ""
-      STREAM_CACHE_TTL: "18000"
-      SESSION_COOKIE_NAME: __Host-resonar_session
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-resonar}:${POSTGRES_PASSWORD:-resonar}@db:5432/${POSTGRES_DB:-resonar}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      STREAM_CACHE_TTL: ${STREAM_CACHE_TTL:-18000}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-__Host-resonar_session}
       # For local access over plain HTTP (not HTTPS, not bare localhost) the
       # browser rejects the __Host- / Secure cookie and login silently fails.
       # See the "Authentication / session" note in .env.example for the
       # resonar_session + SESSION_COOKIE_SECURE=false override.
-      SESSION_COOKIE_SECURE: "true"
-      SESSION_IDLE_TTL: "43200"
-      SESSION_ABSOLUTE_TTL: "604800"
-      SESSION_REMEMBER_IDLE_TTL: "2592000"
-      SESSION_REMEMBER_ABSOLUTE_TTL: "7776000"
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+      SESSION_IDLE_TTL: ${SESSION_IDLE_TTL:-43200}
+      SESSION_ABSOLUTE_TTL: ${SESSION_ABSOLUTE_TTL:-604800}
+      SESSION_REMEMBER_IDLE_TTL: ${SESSION_REMEMBER_IDLE_TTL:-2592000}
+      SESSION_REMEMBER_ABSOLUTE_TTL: ${SESSION_REMEMBER_ABSOLUTE_TTL:-7776000}
       # Set a strong shared secret before first run to gate POST /api/auth/bootstrap.
-      # BOOTSTRAP_TOKEN: ""
+      # Set BOOTSTRAP_TOKEN in .env — empty here means "no token required".
+      BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN:-}
       # Point this at a cookies.txt (Netscape format) if extraction starts
       # failing with "Sign in to confirm you're not a bot". Put the file in
       # ./config/ and uncomment:
