@@ -16,13 +16,13 @@ import { usePlayer } from "../state/player";
 import { claimPlayback, isVideoActive, onPlaybackClaim } from "../state/mediabus";
 import { registerSeeker, setNowPlaying } from "../state/nowPlaying";
 import { scrobblingOn } from "../state/settings";
+import { useVolumeLeveling } from "../lib/useVolumeLeveling";
 import AddToPlaylistButton from "./AddToPlaylistButton";
 import ArtistLinks from "./ArtistLinks";
 import Icon from "./Icon";
 import QueuePanel from "./QueuePanel";
 import LyricsPanel from "./LyricsPanel";
 
-const LEVEL_KEY = "resonar:level";
 const POS_KEY = "resonar:pos";
 
 function reducedMotion(): boolean {
@@ -100,74 +100,8 @@ export default function PlayerBar() {
   const restoringRef = useRef<boolean>(!!current);
 
   // ---- Web Audio volume leveling (engaged only when turned on) ----
-  const [leveled, setLeveled] = useState(() => {
-    try {
-      return localStorage.getItem(LEVEL_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const graphRef = useRef<{
-    src: MediaElementAudioSourceNode;
-    comp: DynamicsCompressorNode;
-    gain: GainNode;
-  } | null>(null);
-
-  function routeGraph(on: boolean) {
-    const g = graphRef.current;
-    const ctx = audioCtxRef.current;
-    if (!g || !ctx) return;
-    for (const n of [g.src, g.comp, g.gain]) {
-      try {
-        n.disconnect();
-      } catch {
-        /* ignore */
-      }
-    }
-    if (on) {
-      g.src.connect(g.comp);
-      g.comp.connect(g.gain);
-      g.gain.connect(ctx.destination);
-    } else {
-      g.src.connect(ctx.destination);
-    }
-  }
-
-  function buildGraph() {
-    if (graphRef.current || !audioRef.current) return;
-    const Ctx: typeof AudioContext =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new Ctx();
-    audioCtxRef.current = ctx;
-    const src = ctx.createMediaElementSource(audioRef.current);
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -26;
-    comp.knee.value = 28;
-    comp.ratio.value = 4;
-    comp.attack.value = 0.004;
-    comp.release.value = 0.25;
-    const gain = ctx.createGain();
-    gain.gain.value = 1.35;
-    graphRef.current = { src, comp, gain };
-  }
-
-  function toggleLevel() {
-    setLeveled((prevOn) => {
-      const on = !prevOn;
-      try {
-        localStorage.setItem(LEVEL_KEY, on ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      if (on) buildGraph();
-      audioCtxRef.current?.resume?.();
-      routeGraph(on);
-      return on;
-    });
-  }
+  const { leveled, toggleLevel, resume: resumeAudioCtx, close: closeAudioCtx } =
+    useVolumeLeveling(audioRef);
 
   // ---- Plyr lifecycle ----
   useEffect(() => {
@@ -235,7 +169,7 @@ export default function PlayerBar() {
     player.on("timeupdate", onTime);
     player.on("play", () => {
       claimPlayback("music");
-      audioCtxRef.current?.resume?.();
+      resumeAudioCtx();
       setNowPlaying({ paused: false });
       if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
     });
@@ -250,8 +184,9 @@ export default function PlayerBar() {
     return () => {
       off();
       player.destroy();
-      audioCtxRef.current?.close?.();
+      closeAudioCtx();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---- "Radio": fill the queue with similar songs as soon as it's turned on
