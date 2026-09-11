@@ -256,7 +256,9 @@ export default function AuthedApp({
   } else if (view === "history") {
     content = <HistoryView onWatch={watch} />;
   } else if (view === "settings") {
-    content = <SettingsView user={user} onLogout={onLogout} />;
+    content = (
+      <SettingsView user={user} onLogout={onLogout} onNavigate={navigate} />
+    );
   } else {
     content = <LibraryView onWatch={watch} />;
   }

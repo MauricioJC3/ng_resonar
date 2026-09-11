@@ -53,6 +53,20 @@
   color: var(--text-dim);
 }
 
+/* Mobile-only: Videos/Historial live here since they dropped off the bottom
+   nav bar (see Nav.tsx / sidebar.css) — the desktop rail already has them. */
+.settings__quicklinks-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 860px) {
+  .settings__quicklinks {
+    display: none;
+  }
+}
+
 .field {
   display: flex;
   flex-wrap: wrap;

@@ -7,13 +7,16 @@ import Icon from "./Icon";
 
 const COLLAPSE_KEY = "resonar:navcollapsed";
 
-const NAV: { id: View; label: string; icon: string }[] = [
+// `mobilePrimary: false` items still show on the desktop rail but drop out of
+// the mobile bottom bar (5 tabs fit; 7 wrapped their labels unevenly on
+// narrow screens). Reachable on mobile from "Ajustes" > Accesos rápidos.
+const NAV: { id: View; label: string; icon: string; mobilePrimary?: boolean }[] = [
   { id: "home", label: "Inicio", icon: "home" },
   { id: "search", label: "Buscar", icon: "search" },
-  { id: "videos", label: "Videos", icon: "video" },
+  { id: "videos", label: "Videos", icon: "video", mobilePrimary: false },
   { id: "playlists", label: "Playlists", icon: "list" },
   { id: "library", label: "Biblioteca", icon: "heart" },
-  { id: "history", label: "Historial", icon: "history" },
+  { id: "history", label: "Historial", icon: "history", mobilePrimary: false },
   { id: "settings", label: "Ajustes", icon: "settings" },
 ];
 
@@ -76,7 +79,8 @@ export default function Nav({
               className={
                 "nav__item" +
                 (active ? " is-active" : "") +
-                (isLibrary && dropActive ? " nav__item--drop" : "")
+                (isLibrary && dropActive ? " nav__item--drop" : "") +
+                (item.mobilePrimary === false ? " nav__item--desktop-only" : "")
               }
               onClick={() => onNavigate(item.id)}
               aria-current={active ? "page" : undefined}

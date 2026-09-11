@@ -3,6 +3,7 @@ import { useState } from "react";
 import { lastfmAuthUrl } from "../api";
 import { refreshSettings, saveSettings, useSettings } from "../state/settings";
 import type { AuthUser } from "../types";
+import type { View } from "../App";
 import ChangePasswordView from "./ChangePasswordView";
 import Icon from "./Icon";
 import UsersAdminView from "./UsersAdminView";
@@ -12,6 +13,8 @@ type Theme = "light" | "dark";
 interface Props {
   user: AuthUser | null;
   onLogout: () => void;
+  /** Jump to a view — used by the mobile-only quick links below. */
+  onNavigate: (v: View) => void;
 }
 
 function currentTheme(): Theme {
@@ -35,7 +38,7 @@ function applyTheme(next: Theme) {
   if (meta) meta.setAttribute("content", next === "light" ? "#F1F4F3" : "#0E1414");
 }
 
-export default function SettingsView({ user, onLogout }: Props) {
+export default function SettingsView({ user, onLogout, onNavigate }: Props) {
   const s = useSettings();
   const [lbToken, setLbToken] = useState("");
   const [lfKey, setLfKey] = useState("");
@@ -70,11 +73,30 @@ export default function SettingsView({ user, onLogout }: Props) {
     </section>
   );
 
+  // Mobile-only: Videos and Historial dropped off the bottom nav bar to keep
+  // it at 5 tabs (see Nav.tsx), so they need a way back in on a phone.
+  const quickLinksSection = (
+    <section className="card settings__quicklinks">
+      <div className="card__head">
+        <h2>Accesos rápidos</h2>
+      </div>
+      <div className="settings__quicklinks-row">
+        <button className="btn" onClick={() => onNavigate("videos")}>
+          <Icon name="video" size={15} /> Videos
+        </button>
+        <button className="btn" onClick={() => onNavigate("history")}>
+          <Icon name="history" size={15} /> Historial
+        </button>
+      </div>
+    </section>
+  );
+
   if (!s) {
     return (
       <div className="view settings">
         <h1 className="view__title">Ajustes</h1>
         {accountSection}
+        {quickLinksSection}
         {user && <UsersAdminView user={user} />}
         <p className="hint">Cargando…</p>
       </div>
@@ -110,6 +132,7 @@ export default function SettingsView({ user, onLogout }: Props) {
       <h1 className="view__title">Ajustes</h1>
 
       {accountSection}
+      {quickLinksSection}
       {user && <UsersAdminView user={user} />}
 
       <section className="card">

@@ -204,6 +204,12 @@
     font-weight: 600;
   }
 
+  /* Keeps the bar at 5 tabs so labels never wrap unevenly on narrow phones.
+     These stay reachable from Ajustes > Accesos rápidos. */
+  .nav__item--desktop-only {
+    display: none;
+  }
+
   .nav__item .nav__label {
     font-size: 10.5px;
   }
