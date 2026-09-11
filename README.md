@@ -106,11 +106,11 @@ canción de la cola, añade ~20 similares vía `/api/related` y sigue sola.
 **SponsorBlock:** en la vista de video, salta patrocinios/intros/outros
 automáticamente. Se puede apagar con el chip "SponsorBlock".
 
-**Playlists:** sección propia. Se guardan en el servidor (`./data/playlists.json`),
-así que se ven igual desde cualquier dispositivo. Se crean vacías, se importan
-desde una URL de playlist/álbum de YouTube o YT Music, y desde la búsqueda se
-añaden canciones con el botón ＋. "Descargar todo (MP3)" arma un ZIP en segundo
-plano.
+**Playlists:** sección propia. Se guardan en Postgres, por usuario, así que se
+ven igual desde cualquier dispositivo (y un usuario nunca ve las playlists de
+otro). Se crean vacías, se importan desde una URL de playlist/álbum de YouTube
+o YT Music, y desde la búsqueda se añaden canciones con el botón ＋. "Descargar
+todo (MP3)" arma un ZIP en segundo plano.
 
 **Letra:** botón de letra en la barra → panel con la letra sincronizada
 (resalta la línea actual; toca una línea para saltar ahí). Fuente: LRCLIB.
@@ -127,7 +127,7 @@ MediaSession (play/pausa, anterior/siguiente, ±10s, barra de progreso).
 **Scrobbling (Ajustes):** ListenBrainz (pega tu *user token*) y Last.fm (crea una
 API account, pega key + secret y pulsa "Conectar cuenta"). Se manda
 "reproduciendo ahora" al empezar y el scrobble tras ~4 min o la mitad. Todo se
-guarda en `./data/settings.json` (los secretos no se devuelven por la API).
+guarda en Postgres, por usuario (los secretos no se devuelven por la API).
 
 ## Autenticación
 
