@@ -1,0 +1,52 @@
+{
+  "packageId": "com.nexuragrid.ngyou.twa",
+  "host": "ngyou.nexuragrid.com",
+  "name": "Resonar",
+  "launcherName": "Resonar",
+  "display": "standalone",
+  "themeColor": "#0E1414",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#0E1414",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://ngyou.nexuragrid.com/icon-512.png",
+  "maskableIconUrl": "https://ngyou.nexuragrid.com/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/mnt/c/Users/Usuario/Desktop/proyects/Apps/ng_resonar/android-twa/android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://ngyou.nexuragrid.com/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://ngyou.nexuragrid.com/",
+  "minSdkVersion": 21,
+  "orientation": "any",
+  "fingerprints": [
+    {
+      "name": "release",
+      "value": "12:F1:15:E9:27:88:21:20:68:4B:1E:62:B3:31:81:65:52:C3:8E:CC:B7:E6:77:82:6E:72:57:45:6A:38:5B:41"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

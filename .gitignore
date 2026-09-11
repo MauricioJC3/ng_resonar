@@ -10,3 +10,16 @@ data/
 
 # Tooling cache (skill registry)
 .atl/
+
+# Android TWA — build output + the signing keystore never go in git.
+# Losing the keystore/password means you can never update the published app
+# again (Play Store requires the same signing key for every update) — back
+# them up somewhere safe (password manager), just don't commit them.
+android-twa/.gradle/
+android-twa/app/build/
+android-twa/build/
+android-twa/*.apk
+android-twa/*.apk.idsig
+android-twa/*.aab
+android-twa/android.keystore
+android-twa/local.properties

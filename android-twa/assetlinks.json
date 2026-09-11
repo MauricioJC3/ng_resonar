@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.nexuragrid.ngyou.twa",
+        "sha256_cert_fingerprints": ["12:F1:15:E9:27:88:21:20:68:4B:1E:62:B3:31:81:65:52:C3:8E:CC:B7:E6:77:82:6E:72:57:45:6A:38:5B:41"]
+      }
+    }]
