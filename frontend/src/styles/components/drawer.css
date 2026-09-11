@@ -110,6 +110,16 @@
   box-shadow: inset 0 2px 0 var(--accent);
 }
 
+/* Highlighted by keyboard list navigation (Arrow keys + Enter). */
+.qrow--selected {
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.qrow--selected.qrow--now {
+  background: var(--accent-wash);
+}
+
 .qrow__grip {
   display: flex;
   flex-shrink: 0;

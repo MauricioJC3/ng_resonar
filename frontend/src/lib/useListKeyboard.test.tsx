@@ -97,6 +97,23 @@ describe("useListKeyboard", () => {
     expect(onActivate).not.toHaveBeenCalled();
   });
 
+  it("keeps navigating for a list that lives inside the open queue panel", () => {
+    // The queue panel's own row list is rendered *inside* the element that
+    // carries .drawer--open, so it must be exempt from the rule above —
+    // otherwise the queue could never navigate itself while open.
+    const onActivate = vi.fn();
+    const { container } = render(
+      <aside className="drawer drawer--open">
+        <List count={3} onActivate={onActivate} />
+      </aside>,
+    );
+    expect(container.querySelector("ul")).not.toBeNull();
+
+    press("ArrowDown");
+    press("Enter");
+    expect(onActivate).toHaveBeenCalledWith(0);
+  });
+
   it("stands down while the full video watch view is on screen", () => {
     const onActivate = vi.fn();
     const watch = document.createElement("div");

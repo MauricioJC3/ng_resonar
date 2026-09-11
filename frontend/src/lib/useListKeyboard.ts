@@ -9,10 +9,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *
  * Listens on `window` so it works right after a search without the user having
  * to focus the list, but stays out of the way while a text field is focused,
- * while the queue / lyrics panel is open, or while the full video watch view is
- * on screen (its player owns the keyboard then — the mini-player / PiP do not).
- * It only claims ArrowUp / ArrowDown / Enter — never the Left/Right seek keys
- * `PlayerBar` uses.
+ * while the lyrics panel is open, or while the full video watch view is on
+ * screen (its player owns the keyboard then — the mini-player / PiP do not).
+ * An open queue panel takes the keyboard from every other list too — except
+ * its own row list, which lives inside that panel and keeps navigating while
+ * it's open. It only claims ArrowUp / ArrowDown / Enter — never the
+ * Left/Right seek keys `PlayerBar` uses.
  *
  * Attach the returned `listRef` to the element whose direct children are the
  * rows (one element per item).
@@ -64,10 +66,17 @@ export function useListKeyboard(
           el.isContentEditable)
       )
         return true;
-      // The full watch view owns the keyboard; a backgrounded mini-player / PiP
-      // does not. The queue panel (always in the DOM, just collapsed) and the
-      // lyrics panel take the arrow keys while open.
-      if (document.querySelector(".watch, .drawer--open, .lyrics")) return true;
+      // The full watch view and the lyrics panel own the keyboard outright.
+      if (document.querySelector(".watch, .lyrics")) return true;
+      // An open queue drawer takes the arrow keys away from every other list —
+      // except the queue's own row list, which lives inside that very drawer
+      // and must keep navigating while it's open.
+      const openDrawer = document.querySelector(".drawer--open");
+      if (openDrawer) {
+        if (nodeRef.current && openDrawer.contains(nodeRef.current))
+          return false;
+        return true;
+      }
       return false;
     };
 

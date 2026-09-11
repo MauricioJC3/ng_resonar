@@ -112,6 +112,13 @@ export default function HomeView() {
           <h2 className="view__subhead">Reproducido recientemente</h2>
           <div
             className="tracklist"
+            // Keyed on navOnRecent so switching which section owns the roving
+            // cursor fully remounts this container instead of silently
+            // reusing the DOM node — otherwise useListKeyboard's click
+            // delegation (bound on [enabled, count], which can coincidentally
+            // stay the same across the switch) can be left listening on a
+            // container that no longer matches the shared activeIndex.
+            key={navOnRecent ? "recent-nav" : "recent-idle"}
             ref={navOnRecent ? listRef : undefined}
           >
             {recent.map((track, i) => (
@@ -132,6 +139,8 @@ export default function HomeView() {
           <h2 className="view__subhead">Escucha algo ahora</h2>
           <div
             className="tracklist"
+            // See the matching comment above the "recent" container.
+            key={navOnRecent ? "feed-idle" : "feed-nav"}
             ref={!navOnRecent ? listRef : undefined}
           >
             {feed.map((track, i) => (
