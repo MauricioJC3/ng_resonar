@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Request
 from ..deps import get_cache, get_http
 from ..services import ytdlp
 from ..services.proxy import proxy_media
+from ._shared import VideoId
 
 router = APIRouter(tags=["stream"])
 
@@ -23,7 +24,7 @@ async def _resolved(video_id: str, *, force: bool = False) -> dict:
 
 
 @router.get("/stream/{video_id}")
-async def stream(video_id: str, request: Request):
+async def stream(video_id: VideoId, request: Request):
     return await proxy_media(
         get_http(),
         request,

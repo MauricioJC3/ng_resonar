@@ -4,6 +4,7 @@ from ..config import settings
 from ..deps import get_cache, get_http
 from ..services import ytdlp, ytmusic
 from ..services.proxy import proxy_media
+from ._shared import VideoId
 
 router = APIRouter(tags=["video"])
 
@@ -34,7 +35,7 @@ async def videos_trending():
 
 
 @router.get("/videos/info/{video_id}")
-async def videos_info(video_id: str):
+async def videos_info(video_id: VideoId):
     try:
         return await ytdlp.video_info(video_id)
     except Exception:  # noqa: BLE001
@@ -80,7 +81,7 @@ async def _resolved_video(video_id: str, *, force: bool = False) -> dict:
 
 
 @router.get("/videos/stream/{video_id}")
-async def videos_stream(video_id: str, request: Request):
+async def videos_stream(video_id: VideoId, request: Request):
     return await proxy_media(
         get_http(),
         request,

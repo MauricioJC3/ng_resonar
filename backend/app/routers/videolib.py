@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
 from ..services import videolib
+from ._shared import VideoId
 
 router = APIRouter(tags=["videolib"])
 
@@ -13,7 +14,7 @@ async def list_videos():
 
 @router.post("/library/videos/{video_id}")
 async def save_video(
-    video_id: str,
+    video_id: VideoId,
     quality: int = Query(1080, ge=144, le=2160),
     force: bool = Query(False),
 ):
@@ -22,12 +23,12 @@ async def save_video(
 
 
 @router.delete("/library/videos/{video_id}")
-async def remove_video(video_id: str):
+async def remove_video(video_id: VideoId):
     return {"removed": videolib.delete_saved(video_id)}
 
 
 @router.get("/library/videos/{video_id}/file")
-async def video_file(video_id: str):
+async def video_file(video_id: VideoId):
     path = videolib.file_path(video_id)
     if not path:
         raise HTTPException(status_code=404, detail="video not saved")
@@ -35,7 +36,7 @@ async def video_file(video_id: str):
 
 
 @router.get("/library/videos/{video_id}/download")
-async def video_download(video_id: str):
+async def video_download(video_id: VideoId):
     path = videolib.file_path(video_id)
     if not path:
         raise HTTPException(status_code=404, detail="video not saved")
