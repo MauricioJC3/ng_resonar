@@ -70,21 +70,68 @@ def _first_thumbnail(db: Session, user_id: int, pid: str) -> str | None:
 
 
 def list_summaries(db: Session, user_id: int) -> list[dict]:
-    """Newest-updated first, matching the old JSON service ordering."""
+    """Newest-updated first, matching the old JSON service ordering.
+
+    One query instead of the previous N+1 (a ``_count`` + ``_first_thumbnail``
+    round trip per playlist): track counts are aggregated with ``GROUP BY``
+    and each playlist's first track (lowest ``position``) is picked with
+    ``row_number() OVER (PARTITION BY playlist_id ORDER BY position)``; both
+    are LEFT JOINed back onto ``playlists`` so empty playlists still come
+    back with ``count=0`` / ``thumbnail=None``.
+    """
+    counts_subq = (
+        select(
+            PlaylistTrack.playlist_id.label("playlist_id"),
+            func.count().label("track_count"),
+        )
+        .group_by(PlaylistTrack.playlist_id)
+        .subquery()
+    )
+
+    ranked = select(
+        PlaylistTrack.playlist_id.label("playlist_id"),
+        PlaylistTrack.track.label("track"),
+        func.row_number()
+        .over(
+            partition_by=PlaylistTrack.playlist_id,
+            order_by=PlaylistTrack.position,
+        )
+        .label("rn"),
+    ).subquery()
+    first_track_subq = (
+        select(ranked.c.playlist_id, ranked.c.track).where(ranked.c.rn == 1)
+    ).subquery()
+
     stmt = (
-        select(Playlist)
+        select(
+            Playlist.id,
+            Playlist.name,
+            Playlist.updated_at,
+            func.coalesce(counts_subq.c.track_count, 0).label("track_count"),
+            first_track_subq.c.track.label("first_track"),
+        )
+        .outerjoin(counts_subq, counts_subq.c.playlist_id == Playlist.id)
+        .outerjoin(
+            first_track_subq, first_track_subq.c.playlist_id == Playlist.id
+        )
         .where(Playlist.user_id == user_id)
         .order_by(Playlist.updated_at.desc())
     )
+
     out: list[dict] = []
-    for pl in db.execute(stmt).scalars():
+    for pid, name, updated_at, track_count, first_track in db.execute(stmt).all():
+        thumbnail = (
+            first_track.get("thumbnail")
+            if isinstance(first_track, dict)
+            else None
+        )
         out.append(
             {
-                "id": pl.id,
-                "name": pl.name,
-                "count": _count(db, user_id, pl.id),
-                "thumbnail": _first_thumbnail(db, user_id, pl.id),
-                "updatedAt": int(pl.updated_at.timestamp()),
+                "id": pid,
+                "name": name,
+                "count": track_count,
+                "thumbnail": thumbnail,
+                "updatedAt": int(updated_at.timestamp()),
             }
         )
     return out

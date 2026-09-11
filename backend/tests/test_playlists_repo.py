@@ -50,6 +50,37 @@ def test_lists_are_scoped_to_the_owner(db_session, alice, bob):
     assert isinstance(summaries[0]["updatedAt"], int)
 
 
+def test_list_summaries_counts_and_thumbnails_for_mixed_playlists(
+    db_session, alice, bob
+):
+    """Locks in ``list_summaries``' single aggregated query: empty playlists
+    get ``count=0``/``thumbnail=None``, non-empty ones get the right count
+    and the *first* track's (lowest position) thumbnail — not just any."""
+    empty = playlists_repo.create(db_session, alice.id, "Empty", [])
+    one_track = playlists_repo.create(
+        db_session, alice.id, "One", [_track("only")]
+    )
+    multi = playlists_repo.create(
+        db_session, alice.id, "Multi", [_track("first"), _track("second")]
+    )
+    # Reordering multi's tracks changes which one is "first" by position.
+    playlists_repo.reorder(db_session, alice.id, multi.id, ["second", "first"])
+    # Another user's playlists must never leak into alice's summaries.
+    playlists_repo.create(db_session, bob.id, "Bob's", [_track("bt")])
+
+    by_id = {s["id"]: s for s in playlists_repo.list_summaries(db_session, alice.id)}
+    assert set(by_id) == {empty.id, one_track.id, multi.id}
+
+    assert by_id[empty.id]["count"] == 0
+    assert by_id[empty.id]["thumbnail"] is None
+
+    assert by_id[one_track.id]["count"] == 1
+    assert by_id[one_track.id]["thumbnail"] == "http://t/only.jpg"
+
+    assert by_id[multi.id]["count"] == 2
+    assert by_id[multi.id]["thumbnail"] == "http://t/second.jpg"
+
+
 def test_another_users_id_is_invisible_to_get_rename_delete(db_session, alice, bob):
     pl = playlists_repo.create(db_session, alice.id, "Secret", [])
     assert playlists_repo.get(db_session, bob.id, pl.id) is None
