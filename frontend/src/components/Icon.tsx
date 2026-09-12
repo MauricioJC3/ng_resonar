@@ -190,6 +190,12 @@ const PATHS: Record<string, ReactElement> = {
       <path d="M21 12H9" />
     </>
   ),
+  offline: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8 12.3 2.6 2.6L16 9.5" />
+    </>
+  ),
 };
 
 const FILLED = new Set(["play", "pause", "skipBack", "skipForward", "grip"]);

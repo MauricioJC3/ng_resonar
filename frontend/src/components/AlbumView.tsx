@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { getAlbum } from "../api";
 import type { Album } from "../types";
+import { downloadManyOffline } from "../state/offline";
 import { usePlayer } from "../state/player";
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { shuffled } from "../lib/shuffle";
@@ -96,6 +97,14 @@ export default function AlbumView({
                   title="Añadir todas a la cola"
                 >
                   <Icon name="queue" size={14} /> A la cola
+                </button>
+                <button
+                  className="btn btn--ghost"
+                  disabled={!album.tracks.length}
+                  onClick={() => downloadManyOffline(album.tracks)}
+                  title="Descargar todo el álbum para escuchar sin conexión"
+                >
+                  <Icon name="offline" size={14} /> Sin conexión
                 </button>
               </div>
             </div>

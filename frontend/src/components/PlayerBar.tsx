@@ -12,6 +12,14 @@ import {
   streamUrl,
 } from "../api";
 import { isSaved, toggleLibrary, useLibrary } from "../state/library";
+import {
+  downloadOffline,
+  getOfflineBlob,
+  isOffline,
+  offlineStatus,
+  removeOffline,
+  useOfflineTracks,
+} from "../state/offline";
 import { usePlayer } from "../state/player";
 import { claimPlayback, isVideoActive, onPlaybackClaim } from "../state/mediabus";
 import { registerSeeker, setNowPlaying } from "../state/nowPlaying";
@@ -46,6 +54,11 @@ export default function PlayerBar() {
   } = usePlayer();
   const upcoming = Math.max(0, queue.length - index - 1);
   const library = useLibrary();
+  const offlineTracks = useOfflineTracks();
+  const offlineOn = current ? isOffline(current.id, offlineTracks) : false;
+  const offlineBusy = current
+    ? offlineStatus(current.id, offlineTracks) === "downloading"
+    : false;
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
@@ -306,6 +319,7 @@ export default function PlayerBar() {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !current) return;
+    const track = current;
 
     const restoring = restoringRef.current;
     restoringRef.current = false;
@@ -314,75 +328,97 @@ export default function PlayerBar() {
     // listener from a previous jump.
     resumeCleanupRef.current?.();
 
-    audio.src = streamUrl(current.id);
     scrobbledRef.current = false;
 
-    if (restoring) {
-      // Coming back from a hard reload: load ready-to-play at the saved spot,
-      // but DON'T autoplay (browser blocks it) or re-log the play. Only here do
-      // we resume a saved position — navigating to a track any other way
-      // (including "anterior" back to a finished song) must start it from 0.
-      try {
-        const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null") as {
-          id?: string;
-          t?: number;
-        } | null;
-        if (saved && saved.id === current.id && (saved.t ?? 0) > 3) {
-          const onMeta = () => {
-            try {
-              audio.currentTime = saved.t as number;
-            } catch {
-              /* ignore */
-            }
-            audio.removeEventListener("loadedmetadata", onMeta);
-          };
-          audio.addEventListener("loadedmetadata", onMeta);
-        }
-      } catch {
-        /* ignore */
-      }
-    } else {
-      audio.play().catch(() => {
-        // Blocked — commonly this jump was triggered by "ended" while the
-        // app was backgrounded. Reflect the real state on the lock screen
-        // (otherwise it keeps showing a dead "pause" button) and resume as
-        // soon as we're foregrounded again or get any tap.
-        if ("mediaSession" in navigator) {
-          navigator.mediaSession.playbackState = "paused";
-        }
-        scheduleAutoplayResume();
-      });
-      recordPlay(current, "song", "player");
-      if (scrobblingOn()) scrobbleNowPlaying(current);
-    }
+    let cancelled = false;
+    let revokeSrc: (() => void) | null = null;
 
-    if ("mediaSession" in navigator) {
-      const ms = navigator.mediaSession;
-      ms.metadata = new MediaMetadata({
-        title: current.title,
-        artist: current.artists.join(", "),
-        album: current.album ?? "",
-        artwork: current.thumbnail
-          ? [{ src: current.thumbnail, sizes: "544x544", type: "image/jpeg" }]
-          : [],
-      });
-      const seekBy = (delta: number) => {
-        const a = audioRef.current;
-        if (a) a.currentTime = Math.max(0, a.currentTime + delta);
-      };
-      ms.setActionHandler("play", () => audioRef.current?.play());
-      ms.setActionHandler("pause", () => audioRef.current?.pause());
-      ms.setActionHandler("stop", () => audioRef.current?.pause());
-      ms.setActionHandler("previoustrack", () => prevRef.current());
-      ms.setActionHandler("nexttrack", () => nextRef.current());
-      ms.setActionHandler("seekbackward", (d) => seekBy(-(d.seekOffset || 10)));
-      ms.setActionHandler("seekforward", (d) => seekBy(d.seekOffset || 10));
-      ms.setActionHandler("seekto", (d) => {
-        if (d.seekTime != null && audioRef.current) {
-          audioRef.current.currentTime = d.seekTime;
+    (async () => {
+      // Prefer the on-device copy when there is one, so a downloaded track
+      // keeps playing with no connection at all — same track, just a
+      // different source.
+      const blob = await getOfflineBlob(track.id).catch(() => null);
+      if (cancelled) return;
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        revokeSrc = () => URL.revokeObjectURL(url);
+        audio.src = url;
+      } else {
+        audio.src = streamUrl(track.id);
+      }
+
+      if (restoring) {
+        // Coming back from a hard reload: load ready-to-play at the saved spot,
+        // but DON'T autoplay (browser blocks it) or re-log the play. Only here do
+        // we resume a saved position — navigating to a track any other way
+        // (including "anterior" back to a finished song) must start it from 0.
+        try {
+          const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null") as {
+            id?: string;
+            t?: number;
+          } | null;
+          if (saved && saved.id === track.id && (saved.t ?? 0) > 3) {
+            const onMeta = () => {
+              try {
+                audio.currentTime = saved.t as number;
+              } catch {
+                /* ignore */
+              }
+              audio.removeEventListener("loadedmetadata", onMeta);
+            };
+            audio.addEventListener("loadedmetadata", onMeta);
+          }
+        } catch {
+          /* ignore */
         }
-      });
-    }
+      } else {
+        audio.play().catch(() => {
+          // Blocked — commonly this jump was triggered by "ended" while the
+          // app was backgrounded. Reflect the real state on the lock screen
+          // (otherwise it keeps showing a dead "pause" button) and resume as
+          // soon as we're foregrounded again or get any tap.
+          if ("mediaSession" in navigator) {
+            navigator.mediaSession.playbackState = "paused";
+          }
+          scheduleAutoplayResume();
+        });
+        recordPlay(track, "song", "player");
+        if (scrobblingOn()) scrobbleNowPlaying(track);
+      }
+
+      if ("mediaSession" in navigator) {
+        const ms = navigator.mediaSession;
+        ms.metadata = new MediaMetadata({
+          title: track.title,
+          artist: track.artists.join(", "),
+          album: track.album ?? "",
+          artwork: track.thumbnail
+            ? [{ src: track.thumbnail, sizes: "544x544", type: "image/jpeg" }]
+            : [],
+        });
+        const seekBy = (delta: number) => {
+          const a = audioRef.current;
+          if (a) a.currentTime = Math.max(0, a.currentTime + delta);
+        };
+        ms.setActionHandler("play", () => audioRef.current?.play());
+        ms.setActionHandler("pause", () => audioRef.current?.pause());
+        ms.setActionHandler("stop", () => audioRef.current?.pause());
+        ms.setActionHandler("previoustrack", () => prevRef.current());
+        ms.setActionHandler("nexttrack", () => nextRef.current());
+        ms.setActionHandler("seekbackward", (d) => seekBy(-(d.seekOffset || 10)));
+        ms.setActionHandler("seekforward", (d) => seekBy(d.seekOffset || 10));
+        ms.setActionHandler("seekto", (d) => {
+          if (d.seekTime != null && audioRef.current) {
+            audioRef.current.currentTime = d.seekTime;
+          }
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      revokeSrc?.();
+    };
   }, [current]);
 
   return (
@@ -517,6 +553,27 @@ export default function PlayerBar() {
               <span className="player__badge">{upcoming}</span>
             )}
           </button>
+          {current && (
+            <button
+              className={"player__toggle" + (offlineOn ? " is-on" : "")}
+              onClick={() =>
+                offlineOn ? removeOffline(current.id) : downloadOffline(current)
+              }
+              disabled={offlineBusy}
+              title={
+                offlineOn
+                  ? "Quitar de escuchar sin conexión"
+                  : "Escuchar sin conexión"
+              }
+              aria-label="Escuchar sin conexión"
+            >
+              {offlineBusy ? (
+                <span className="spinner" />
+              ) : (
+                <Icon name="offline" size={16} filled={offlineOn} />
+              )}
+            </button>
+          )}
           {current && (
             <a
               className="player__download"

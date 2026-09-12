@@ -8,6 +8,7 @@ import {
   reorderPlaylist,
   usePlaylist,
 } from "../state/playlists";
+import { downloadManyOffline } from "../state/offline";
 import { usePlayer } from "../state/player";
 import { shuffled } from "../lib/shuffle";
 import { useListKeyboard } from "../lib/useListKeyboard";
@@ -131,6 +132,14 @@ export default function PlaylistDetailView({
               title="Añadir todas a la cola"
             >
               <Icon name="queue" size={14} /> A la cola
+            </button>
+            <button
+              className="btn btn--ghost"
+              disabled={!pl.tracks.length}
+              onClick={() => downloadManyOffline(pl.tracks)}
+              title="Descargar toda la playlist para escuchar sin conexión"
+            >
+              <Icon name="offline" size={14} /> Sin conexión
             </button>
             <button
               className="btn"

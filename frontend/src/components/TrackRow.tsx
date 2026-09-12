@@ -3,6 +3,13 @@ import { useState } from "react";
 import { downloadUrl } from "../api";
 import type { DownloadFormat, Track } from "../types";
 import { toggleLibrary, useLibrary, isSaved } from "../state/library";
+import {
+  downloadOffline,
+  isOffline,
+  offlineStatus,
+  removeOffline,
+  useOfflineTracks,
+} from "../state/offline";
 import { usePlayer } from "../state/player";
 import { setTrackDrag } from "../lib/dnd";
 import AddToPlaylistButton from "./AddToPlaylistButton";
@@ -25,11 +32,14 @@ export default function TrackRow({
 }) {
   const { current, enqueue } = usePlayer();
   const library = useLibrary();
+  const offlineTracks = useOfflineTracks();
   const [menu, setMenu] = useState<null | "dl">(null);
   const [queued, setQueued] = useState(false);
 
   const active = current?.id === track.id;
   const saved = isSaved(track.id, library);
+  const offlineOn = isOffline(track.id, offlineTracks);
+  const offlineBusy = offlineStatus(track.id, offlineTracks) === "downloading";
 
   function addToQueue() {
     enqueue(track);
@@ -97,6 +107,21 @@ export default function TrackRow({
         </button>
 
         <AddToPlaylistButton track={track} />
+
+        <button
+          className={"track__icon" + (offlineOn ? " is-on" : "")}
+          title={offlineOn ? "Quitar de escuchar sin conexión" : "Escuchar sin conexión"}
+          disabled={offlineBusy}
+          onClick={() =>
+            offlineOn ? removeOffline(track.id) : downloadOffline(track)
+          }
+        >
+          {offlineBusy ? (
+            <span className="spinner" />
+          ) : (
+            <Icon name="offline" size={16} filled={offlineOn} />
+          )}
+        </button>
 
         <div className="track__dl">
           <button

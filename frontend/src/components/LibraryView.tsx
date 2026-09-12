@@ -2,22 +2,30 @@ import { type DragEvent, useState } from "react";
 
 import type { VideoItem } from "../types";
 import { isSaved, toggleLibrary, useLibrary } from "../state/library";
+import { offlineTotalSize, useOfflineTracks } from "../state/offline";
 import { useSavedVideos } from "../state/savedVideos";
 import { usePlayer } from "../state/player";
 import { hasTrackDrag, readTrackDrag } from "../lib/dnd";
 import { useListKeyboard } from "../lib/useListKeyboard";
+import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 import SavedVideoRow from "./SavedVideoRow";
+
+function humanSize(bytes: number): string {
+  const mb = bytes / 1_048_576;
+  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
+}
 
 export default function LibraryView({
   onWatch,
 }: {
   onWatch: (v: VideoItem) => void;
 }) {
-  const [tab, setTab] = useState<"songs" | "videos">("songs");
+  const [tab, setTab] = useState<"songs" | "videos" | "offline">("songs");
   const [dropActive, setDropActive] = useState(false);
   const songs = useLibrary();
   const videos = useSavedVideos();
+  const offline = useOfflineTracks();
   const { playList } = usePlayer();
 
   const { activeIndex, listRef } = useListKeyboard(
@@ -64,6 +72,12 @@ export default function LibraryView({
         >
           Videos{videos.length > 0 ? ` (${videos.length})` : ""}
         </button>
+        <button
+          className={tab === "offline" ? "is-on" : ""}
+          onClick={() => setTab("offline")}
+        >
+          Sin conexión{offline.length > 0 ? ` (${offline.length})` : ""}
+        </button>
       </div>
 
       {tab === "songs" &&
@@ -102,6 +116,37 @@ export default function LibraryView({
               <SavedVideoRow key={entry.id} entry={entry} onWatch={onWatch} />
             ))}
           </div>
+        ))}
+
+      {tab === "offline" &&
+        (offline.length === 0 ? (
+          <div className="empty">
+            <p>Nada descargado para escuchar sin conexión.</p>
+            <p className="empty__sub">
+              Pulsa <Icon name="offline" size={13} /> en una canción, álbum o
+              playlist para tenerla disponible sin internet.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="hint">
+              {offline.filter((t) => t.status === "ready").length} canción
+              {offline.filter((t) => t.status === "ready").length === 1
+                ? ""
+                : "es"}{" "}
+              · {humanSize(offlineTotalSize(offline))}
+            </p>
+            <div className="tracklist">
+              {offline.map((track, i) => (
+                <TrackRow
+                  key={track.id}
+                  track={track}
+                  index={i}
+                  onPlay={() => playList(offline, i)}
+                />
+              ))}
+            </div>
+          </>
         ))}
     </div>
   );
