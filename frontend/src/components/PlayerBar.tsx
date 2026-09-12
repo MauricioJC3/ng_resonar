@@ -95,6 +95,31 @@ export default function PlayerBar() {
   const currentRef = useRef(current);
   currentRef.current = current;
   const scrobbledRef = useRef(false);
+  // Set while an autoplay attempt was blocked (typically the "ended" → next
+  // track jump firing while the app is backgrounded/screen off) so we can
+  // retry as soon as we're back in front of the user, instead of leaving
+  // playback silently stuck until they dig up the "siguiente" button.
+  const resumeCleanupRef = useRef<(() => void) | null>(null);
+  function scheduleAutoplayResume() {
+    resumeCleanupRef.current?.();
+    function attempt() {
+      cleanup();
+      audioRef.current?.play().catch(() => {
+        /* still blocked; nothing more to do until a real interaction */
+      });
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") attempt();
+    }
+    function cleanup() {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pointerdown", attempt);
+      resumeCleanupRef.current = null;
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pointerdown", attempt, { once: true });
+    resumeCleanupRef.current = cleanup;
+  }
   // True only for the very first track when it came back from a persisted queue
   // (Ctrl+Shift+R): load it ready-to-play but don't autoplay / re-log it.
   const restoringRef = useRef<boolean>(!!current);
@@ -183,6 +208,7 @@ export default function PlayerBar() {
     });
     return () => {
       off();
+      resumeCleanupRef.current?.();
       player.destroy();
       closeAudioCtx();
     };
@@ -284,6 +310,10 @@ export default function PlayerBar() {
     const restoring = restoringRef.current;
     restoringRef.current = false;
 
+    // A new track supersedes any pending "resume the blocked autoplay"
+    // listener from a previous jump.
+    resumeCleanupRef.current?.();
+
     audio.src = streamUrl(current.id);
     scrobbledRef.current = false;
 
@@ -313,7 +343,14 @@ export default function PlayerBar() {
       }
     } else {
       audio.play().catch(() => {
-        /* autoplay may be blocked until the first gesture */
+        // Blocked — commonly this jump was triggered by "ended" while the
+        // app was backgrounded. Reflect the real state on the lock screen
+        // (otherwise it keeps showing a dead "pause" button) and resume as
+        // soon as we're foregrounded again or get any tap.
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "paused";
+        }
+        scheduleAutoplayResume();
       });
       recordPlay(current, "song", "player");
       if (scrobblingOn()) scrobbleNowPlaying(current);
