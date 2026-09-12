@@ -6,6 +6,7 @@ import { downloadManyOffline } from "../state/offline";
 import { usePlayer } from "../state/player";
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { shuffled } from "../lib/shuffle";
+import AddToPlaylistButton from "./AddToPlaylistButton";
 import Icon from "./Icon";
 import TrackRow from "./TrackRow";
 
@@ -98,6 +99,13 @@ export default function AlbumView({
                 >
                   <Icon name="queue" size={14} /> A la cola
                 </button>
+                <AddToPlaylistButton
+                  track={album.tracks}
+                  className="btn btn--ghost"
+                  size={14}
+                  label="Añadir a playlist"
+                  disabled={!album.tracks.length}
+                />
                 <button
                   className="btn btn--ghost"
                   disabled={!album.tracks.length}

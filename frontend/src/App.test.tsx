@@ -37,6 +37,7 @@ const user = (mustChangePassword: boolean): AuthUser => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
 });
 
 describe("App auth gate", () => {
@@ -82,5 +83,47 @@ describe("App auth gate", () => {
 
     await screen.findByTestId("login-view");
     expect(resetStores).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the last signed-in user when offline (no network reaches the server)", async () => {
+    // A previous online session cached this device's last user...
+    localStorage.setItem("resonar:lastUser", JSON.stringify(user(false)));
+    // ...and now the cold-start /auth/me can't even reach the server: a raw
+    // fetch failure has no `.status`, unlike a real HTTP error response.
+    vi.mocked(me).mockRejectedValue(new TypeError("Failed to fetch"));
+
+    render(<App />);
+    await screen.findByTestId("authed-app");
+  });
+
+  it("still shows the login gate when offline with nothing cached for this device", async () => {
+    vi.mocked(me).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<App />);
+    await screen.findByTestId("login-view");
+  });
+
+  it("does not use the offline fallback for a real server error", async () => {
+    localStorage.setItem("resonar:lastUser", JSON.stringify(user(false)));
+    const serverError = new Error("500 boom") as Error & { status: number };
+    serverError.status = 500;
+    vi.mocked(me).mockRejectedValue(serverError);
+
+    render(<App />);
+    await screen.findByTestId("login-view");
+  });
+
+  it("clears the cached user on a real session-expired so a later offline cold start can't reuse a dead session", async () => {
+    vi.mocked(me).mockResolvedValue({ authenticated: true, user: user(false) });
+    render(<App />);
+    await screen.findByTestId("authed-app");
+
+    expect(localStorage.getItem("resonar:lastUser")).not.toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("resonar:session-expired"));
+    });
+    await screen.findByTestId("login-view");
+
+    expect(localStorage.getItem("resonar:lastUser")).toBeNull();
   });
 });

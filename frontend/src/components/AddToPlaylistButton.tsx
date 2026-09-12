@@ -6,19 +6,25 @@ import { addToPlaylist, createPlaylist, usePlaylists } from "../state/playlists"
 import Icon from "./Icon";
 
 /**
- * "Add this track to a playlist" — a small button whose menu (the user's
- * playlists + "new playlist") is portalled to <body> and positioned against the
- * button, so it works from the track rows, the queue drawer and the player bar
- * alike without being clipped by a scroll container.
+ * "Add this track (or this whole list, e.g. an album) to a playlist" — a
+ * small button whose menu (the user's playlists + "new playlist") is
+ * portalled to <body> and positioned against the button, so it works from
+ * the track rows, the queue drawer, the player bar and album/playlist
+ * headers alike without being clipped by a scroll container.
  */
 export default function AddToPlaylistButton({
   track,
   className = "track__icon",
   size = 16,
+  label,
+  disabled = false,
 }: {
-  track: Track;
+  track: Track | Track[];
   className?: string;
   size?: number;
+  /** When set, renders as a labelled button (e.g. album/playlist "add all") instead of a bare icon. */
+  label?: string;
+  disabled?: boolean;
 }) {
   const playlists = usePlaylists();
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -68,10 +74,12 @@ export default function AddToPlaylistButton({
         className={className}
         title="Añadir a una playlist"
         aria-label="Añadir a una playlist"
+        disabled={disabled}
         onClick={toggle}
         onBlur={() => window.setTimeout(() => setOpen(false), 160)}
       >
         <Icon name="plus" size={size} />
+        {label ? ` ${label}` : null}
       </button>
       {open &&
         createPortal(

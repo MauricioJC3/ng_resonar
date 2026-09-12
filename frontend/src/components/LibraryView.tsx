@@ -23,14 +23,19 @@ export default function LibraryView({
 }) {
   const [tab, setTab] = useState<"songs" | "videos" | "offline">("songs");
   const [dropActive, setDropActive] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"recent" | "oldest">("recent");
   const songs = useLibrary();
   const videos = useSavedVideos();
   const offline = useOfflineTracks();
   const { playList } = usePlayer();
 
+  // Favorites already come back newest-first from the server, so "oldest" is
+  // just the reverse — no timestamps to sort by client-side.
+  const sortedSongs = sortOrder === "recent" ? songs : [...songs].reverse();
+
   const { activeIndex, listRef } = useListKeyboard(
-    tab === "songs" ? songs.length : 0,
-    (i) => playList(songs, i),
+    tab === "songs" ? sortedSongs.length : 0,
+    (i) => playList(sortedSongs, i),
   );
 
   const dropProps =
@@ -89,17 +94,32 @@ export default function LibraryView({
             </p>
           </div>
         ) : (
-          <div className="tracklist" ref={listRef}>
-            {songs.map((track, i) => (
-              <TrackRow
-                key={track.id}
-                track={track}
-                index={i}
-                selected={i === activeIndex}
-                onPlay={() => playList(songs, i)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="view__toolbar">
+              <select
+                className="savebox__quality"
+                value={sortOrder}
+                aria-label="Ordenar favoritos"
+                onChange={(e) =>
+                  setSortOrder(e.target.value as "recent" | "oldest")
+                }
+              >
+                <option value="recent">Más recientes</option>
+                <option value="oldest">Más antiguos</option>
+              </select>
+            </div>
+            <div className="tracklist" ref={listRef}>
+              {sortedSongs.map((track, i) => (
+                <TrackRow
+                  key={track.id}
+                  track={track}
+                  index={i}
+                  selected={i === activeIndex}
+                  onPlay={() => playList(sortedSongs, i)}
+                />
+              ))}
+            </div>
+          </>
         ))}
 
       {tab === "videos" &&
