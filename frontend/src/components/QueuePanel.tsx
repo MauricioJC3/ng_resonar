@@ -3,7 +3,6 @@ import { type DragEvent, useState } from "react";
 import { isSaved, toggleLibrary, useLibrary } from "../state/library";
 import { usePlayer } from "../state/player";
 import { hasTrackDrag, readTrackDrag, setTrackDrag } from "../lib/dnd";
-import { useListKeyboard } from "../lib/useListKeyboard";
 import AddToPlaylistButton from "./AddToPlaylistButton";
 import ArtistLinks from "./ArtistLinks";
 import Icon from "./Icon";
@@ -35,15 +34,6 @@ export default function QueuePanel({
     setOverIndex(null);
     setDropHot(false);
   }
-
-  // Only owns the arrow keys while the drawer is actually open — it stays
-  // mounted (just collapsed via CSS) so the drawer being in the DOM isn't
-  // enough on its own.
-  const { activeIndex, listRef } = useListKeyboard(
-    visible.length,
-    (vi) => jumpTo(index + vi),
-    open,
-  );
 
   function onRowDrop(to: number, e: DragEvent) {
     e.preventDefault();
@@ -87,7 +77,6 @@ export default function QueuePanel({
 
       <div
         className="drawer__list"
-        ref={listRef}
         onDragOver={(e) => {
           // Allow dropping a track dragged in from a list.
           if (dragIndex === null && hasTrackDrag(e)) {
@@ -125,10 +114,8 @@ export default function QueuePanel({
               (vi === dragIndex ? " qrow--dragging" : "") +
               (vi === overIndex && dragIndex !== null && vi !== dragIndex
                 ? " qrow--over"
-                : "") +
-              (vi === activeIndex ? " qrow--selected" : "")
+                : "")
             }
-            aria-selected={vi === activeIndex || undefined}
             draggable
             onDragStart={(e) => {
               setDragIndex(vi);

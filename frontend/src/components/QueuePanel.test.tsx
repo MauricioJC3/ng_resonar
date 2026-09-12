@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Track } from "../types";
@@ -15,12 +15,6 @@ const playerState = {
   enqueue: vi.fn(),
 };
 
-// The hook's Enter handling calls onActivate() (here, jumpTo) from inside a
-// setState updater — real with the actual PlayerProvider reducer that trips
-// React's "update while rendering a different component" guard in tests
-// (harmless in the app, since the two updates still land in the same batch).
-// A plain spy sidesteps that noise and keeps the assertion focused on what
-// this test actually cares about: which real-queue index got activated.
 vi.mock("../state/player", () => ({
   usePlayer: () => playerState,
 }));
@@ -65,34 +59,24 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("QueuePanel keyboard navigation", () => {
-  it("arrow keys move the highlight over queue rows and Enter jumps to it", () => {
+describe("QueuePanel", () => {
+  // Arrow-key/Enter navigation was dropped here on purpose (it confused users
+  // who weren't trying to reorder anything) — only drag-and-drop remains.
+  it("does not react to arrow keys or Enter", () => {
     renderPanel(true);
     expect(screen.getByText("Cola · 3")).toBeInTheDocument();
 
     press("ArrowDown");
-    let rows = document.querySelectorAll(".qrow");
-    expect(rows[0]).toHaveClass("qrow--selected");
-
     press("ArrowDown");
-    rows = document.querySelectorAll(".qrow");
-    expect(rows[1]).toHaveClass("qrow--selected");
-    expect(rows[0]).not.toHaveClass("qrow--selected");
-
     press("Enter");
-    // Jumps to the real queue index for the highlighted row: index (0) + the
-    // local visible-slice index (1) = "b" at real queue index 1.
-    expect(jumpTo).toHaveBeenCalledWith(1);
+
+    expect(jumpTo).not.toHaveBeenCalled();
+    expect(document.querySelector(".qrow--selected")).toBeNull();
   });
 
-  it("does nothing while the drawer is closed", () => {
-    renderPanel(false);
-    expect(screen.getByText("Cola · 3")).toBeInTheDocument();
-
-    press("ArrowDown");
-    press("Enter");
-
-    expect(document.querySelector(".qrow--selected")).toBeNull();
-    expect(jumpTo).not.toHaveBeenCalled();
+  it("clicking a row still jumps to it", () => {
+    renderPanel(true);
+    fireEvent.click(screen.getByText("b"));
+    expect(jumpTo).toHaveBeenCalledWith(1);
   });
 });
