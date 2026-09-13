@@ -39,7 +39,9 @@ export default function TrackRow({
   const active = current?.id === track.id;
   const saved = isSaved(track.id, library);
   const offlineOn = isOffline(track.id, offlineTracks);
-  const offlineBusy = offlineStatus(track.id, offlineTracks) === "downloading";
+  const offlineEntryStatus = offlineStatus(track.id, offlineTracks);
+  const offlineBusy = offlineEntryStatus === "downloading";
+  const offlineFailed = offlineEntryStatus === "error";
 
   function addToQueue() {
     enqueue(track);
@@ -109,11 +111,23 @@ export default function TrackRow({
         <AddToPlaylistButton track={track} />
 
         <button
-          className={"track__icon" + (offlineOn ? " is-on" : "")}
-          title={offlineOn ? "Quitar de escuchar sin conexión" : "Escuchar sin conexión"}
+          className={
+            "track__icon" +
+            (offlineOn ? " is-on" : "") +
+            (offlineFailed ? " is-error" : "")
+          }
+          title={
+            offlineFailed
+              ? "Descarga fallida — quitar de sin conexión"
+              : offlineOn
+                ? "Quitar de escuchar sin conexión"
+                : "Escuchar sin conexión"
+          }
           disabled={offlineBusy}
           onClick={() =>
-            offlineOn ? removeOffline(track.id) : downloadOffline(track)
+            offlineOn || offlineFailed
+              ? removeOffline(track.id)
+              : downloadOffline(track)
           }
         >
           {offlineBusy ? (

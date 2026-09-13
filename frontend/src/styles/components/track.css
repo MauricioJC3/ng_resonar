@@ -162,6 +162,11 @@
   color: var(--accent);
 }
 
+.track__icon.is-error {
+  opacity: 1;
+  color: var(--danger);
+}
+
 .track__dl {
   position: relative;
 }
