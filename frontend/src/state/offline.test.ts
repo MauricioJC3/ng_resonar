@@ -123,20 +123,20 @@ describe("offline store: downloads", () => {
     expect(offlineStatus("dl-many-b", result.current)).toBe("ready");
   });
 
-  it("tags tracks downloaded via downloadManyOffline with the given playlist", async () => {
+  it("tags tracks downloaded via downloadManyOffline with the given collection", async () => {
     mockFetchOk(2);
     const { result } = renderHook(() => useOfflineTracks());
     const pl = { id: "pl1", name: "Campo de Batalla" };
 
     await act(() =>
-      downloadManyOffline([track("dl-pl-a"), track("dl-pl-b")], { playlist: pl }),
+      downloadManyOffline([track("dl-pl-a"), track("dl-pl-b")], { collection: pl }),
     );
 
     expect(
-      result.current.find((t) => t.id === "dl-pl-a")?.playlists,
+      result.current.find((t) => t.id === "dl-pl-a")?.collections,
     ).toEqual([pl]);
     expect(
-      result.current.find((t) => t.id === "dl-pl-b")?.playlists,
+      result.current.find((t) => t.id === "dl-pl-b")?.collections,
     ).toEqual([pl]);
   });
 
@@ -154,18 +154,18 @@ describe("offline store: downloads", () => {
     ]);
   });
 
-  it("does not tag a plain single-track download with any playlist/album", async () => {
+  it("does not tag a plain single-track download with any collection/album", async () => {
     mockFetchOk(2);
     const { result } = renderHook(() => useOfflineTracks());
 
     await act(() => downloadOffline(track("dl-solo")));
 
     const entry = result.current.find((t) => t.id === "dl-solo");
-    expect(entry?.playlists).toBeUndefined();
+    expect(entry?.collections).toBeUndefined();
     expect(entry?.albums).toBeUndefined();
   });
 
-  it("tags an already-offline track with a playlist instead of skipping it silently", async () => {
+  it("tags an already-offline track with a collection instead of skipping it silently", async () => {
     mockFetchOk(2);
     const { result } = renderHook(() => useOfflineTracks());
     const pl = { id: "pl2", name: "Otra playlist" };
@@ -174,11 +174,11 @@ describe("offline store: downloads", () => {
     const fetchSpy = vi.mocked(fetch);
     fetchSpy.mockClear();
 
-    await act(() => downloadOffline(track("dl-tag-existing"), { playlist: pl }));
+    await act(() => downloadOffline(track("dl-tag-existing"), { collection: pl }));
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(
-      result.current.find((t) => t.id === "dl-tag-existing")?.playlists,
+      result.current.find((t) => t.id === "dl-tag-existing")?.collections,
     ).toEqual([pl]);
   });
 });

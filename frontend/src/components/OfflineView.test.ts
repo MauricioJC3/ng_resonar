@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import type { OfflineAlbumRef, OfflinePlaylistRef, OfflineTrack } from "../state/offline";
-import { groupByAlbum, groupByPlaylist } from "./OfflineView";
+import type { OfflineAlbumRef, OfflineCollectionRef, OfflineTrack } from "../state/offline";
+import { groupByAlbum, groupByCollection } from "./OfflineView";
 
 const track = (
   id: string,
   opts: {
     album?: string | null;
     albums?: OfflineAlbumRef[];
-    playlists?: OfflinePlaylistRef[];
+    collections?: OfflineCollectionRef[];
   } = {},
 ): OfflineTrack => ({
   id,
@@ -17,7 +17,7 @@ const track = (
   album: opts.album,
   status: "ready",
   albums: opts.albums,
-  playlists: opts.playlists,
+  collections: opts.collections,
 });
 
 describe("groupByAlbum", () => {
@@ -67,40 +67,48 @@ describe("groupByAlbum", () => {
   });
 });
 
-describe("groupByPlaylist", () => {
-  const pl1: OfflinePlaylistRef = { id: "pl1", name: "Campo de Batalla" };
-  const pl2: OfflinePlaylistRef = { id: "pl2", name: "Otra playlist" };
+describe("groupByCollection", () => {
+  const pl1: OfflineCollectionRef = { id: "pl1", name: "Campo de Batalla" };
+  const pl2: OfflineCollectionRef = { id: "artist:Alguien", name: "Alguien" };
   const albumA: OfflineAlbumRef = { id: "alb-a", name: "Álbum A" };
 
   it("keeps a playlist's tracks together even when they belong to different albums", () => {
-    const { playlists, rest } = groupByPlaylist([
-      track("a1", { albums: [albumA], playlists: [pl1] }),
-      track("s1", { playlists: [pl1] }),
+    const { collections, rest } = groupByCollection([
+      track("a1", { albums: [albumA], collections: [pl1] }),
+      track("s1", { collections: [pl1] }),
       track("c1", { albums: [albumA] }),
     ]);
 
-    expect(playlists).toHaveLength(1);
-    expect(playlists[0].name).toBe("Campo de Batalla");
-    expect(playlists[0].tracks.map((t) => t.id)).toEqual(["a1", "s1"]);
+    expect(collections).toHaveLength(1);
+    expect(collections[0].name).toBe("Campo de Batalla");
+    expect(collections[0].tracks.map((t) => t.id)).toEqual(["a1", "s1"]);
     expect(rest.map((t) => t.id)).toEqual(["c1"]);
   });
 
-  it("puts a track under every playlist it was downloaded from", () => {
-    const { playlists } = groupByPlaylist([
-      track("a1", { playlists: [pl1, pl2] }),
+  it("also groups an artist's favourites collection, the same way as a playlist", () => {
+    const { collections } = groupByCollection([
+      track("s1", { collections: [pl2] }),
     ]);
-    expect(playlists.map((p) => p.name).sort()).toEqual([
+    expect(collections).toHaveLength(1);
+    expect(collections[0].name).toBe("Alguien");
+  });
+
+  it("puts a track under every collection it was downloaded from", () => {
+    const { collections } = groupByCollection([
+      track("a1", { collections: [pl1, pl2] }),
+    ]);
+    expect(collections.map((c) => c.name).sort()).toEqual([
+      "Alguien",
       "Campo de Batalla",
-      "Otra playlist",
     ]);
   });
 
   it("leaves untagged tracks (album or single downloads) in `rest` for groupByAlbum", () => {
-    const { playlists, rest } = groupByPlaylist([
+    const { collections, rest } = groupByCollection([
       track("a1", { albums: [albumA] }),
       track("b1", {}),
     ]);
-    expect(playlists).toEqual([]);
+    expect(collections).toEqual([]);
     expect(rest.map((t) => t.id)).toEqual(["a1", "b1"]);
   });
 });

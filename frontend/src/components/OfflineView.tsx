@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { offlineTotalSize, useOfflineTracks } from "../state/offline";
-import type { OfflineAlbumRef, OfflinePlaylistRef, OfflineTrack } from "../state/offline";
+import type { OfflineAlbumRef, OfflineCollectionRef, OfflineTrack } from "../state/offline";
 import { usePlayer } from "../state/player";
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { shuffled } from "../lib/shuffle";
@@ -22,7 +22,7 @@ interface Group {
 
 function groupByRef(
   tracks: OfflineTrack[],
-  refsOf: (t: OfflineTrack) => (OfflinePlaylistRef | OfflineAlbumRef)[] | undefined,
+  refsOf: (t: OfflineTrack) => (OfflineCollectionRef | OfflineAlbumRef)[] | undefined,
 ): { groups: Group[]; rest: OfflineTrack[] } {
   const byId = new Map<string, Group>();
   const rest: OfflineTrack[] = [];
@@ -48,18 +48,18 @@ function groupByRef(
 }
 
 /**
- * Tracks downloaded via a playlist's "Sin conexión" button carry that
- * playlist's id/name (see `state/offline.ts`) — pull those out first so a
- * playlist's songs stay together in "Sin conexión" regardless of which
- * album each one originally belongs to. A track downloaded from more than
- * one playlist shows up under each. Whatever's left falls through to
- * `groupByAlbum`.
+ * Tracks downloaded via a playlist's (or an artist's "En tu biblioteca")
+ * "Sin conexión" button carry that collection's id/name (see
+ * `state/offline.ts`) — pull those out first so its songs stay together in
+ * "Sin conexión" regardless of which album each one originally belongs to.
+ * A track downloaded from more than one collection shows up under each.
+ * Whatever's left falls through to `groupByAlbum`.
  */
-export function groupByPlaylist(
+export function groupByCollection(
   tracks: OfflineTrack[],
-): { playlists: Group[]; rest: OfflineTrack[] } {
-  const { groups, rest } = groupByRef(tracks, (t) => t.playlists);
-  return { playlists: groups, rest };
+): { collections: Group[]; rest: OfflineTrack[] } {
+  const { groups, rest } = groupByRef(tracks, (t) => t.collections);
+  return { collections: groups, rest };
 }
 
 /**
@@ -139,7 +139,7 @@ function GroupDetail({
   );
 }
 
-/** Shared grid of group cards for the Playlists / Álbumes tabs. */
+/** Shared grid of group cards for the Colecciones / Álbumes tabs. */
 function GroupGrid({
   groups,
   emptyTitle,
@@ -181,23 +181,25 @@ function GroupGrid({
 }
 
 export default function OfflineView() {
-  const [tab, setTab] = useState<"playlists" | "albums" | "songs">("playlists");
-  const [openPlaylist, setOpenPlaylist] = useState<string | null>(null);
+  const [tab, setTab] = useState<"collections" | "albums" | "songs">(
+    "collections",
+  );
+  const [openCollection, setOpenCollection] = useState<string | null>(null);
   const [openAlbum, setOpenAlbum] = useState<string | null>(null);
   const offline = useOfflineTracks();
   const { playList } = usePlayer();
 
-  const { playlists, rest } = useMemo(() => groupByPlaylist(offline), [offline]);
+  const { collections, rest } = useMemo(() => groupByCollection(offline), [offline]);
   const { albums, loose } = useMemo(() => groupByAlbum(rest), [rest]);
-  const activePlaylist = openPlaylist
-    ? playlists.find((p) => p.id === openPlaylist) ?? null
+  const activeCollection = openCollection
+    ? collections.find((c) => c.id === openCollection) ?? null
     : null;
   const activeAlbum = openAlbum
     ? albums.find((a) => a.id === openAlbum) ?? null
     : null;
 
   const { activeIndex, listRef } = useListKeyboard(
-    tab === "songs" && !activeAlbum && !activePlaylist ? loose.length : 0,
+    tab === "songs" && !activeAlbum && !activeCollection ? loose.length : 0,
     (i) => playList(loose, i),
   );
 
@@ -218,8 +220,10 @@ export default function OfflineView() {
     );
   }
 
-  if (activePlaylist) {
-    return <GroupDetail group={activePlaylist} onBack={() => setOpenPlaylist(null)} />;
+  if (activeCollection) {
+    return (
+      <GroupDetail group={activeCollection} onBack={() => setOpenCollection(null)} />
+    );
   }
 
   if (activeAlbum) {
@@ -236,10 +240,10 @@ export default function OfflineView() {
 
       <div className="segmented">
         <button
-          className={tab === "playlists" ? "is-on" : ""}
-          onClick={() => setTab("playlists")}
+          className={tab === "collections" ? "is-on" : ""}
+          onClick={() => setTab("collections")}
         >
-          Playlists{playlists.length > 0 ? ` (${playlists.length})` : ""}
+          Colecciones{collections.length > 0 ? ` (${collections.length})` : ""}
         </button>
         <button
           className={tab === "albums" ? "is-on" : ""}
@@ -255,12 +259,12 @@ export default function OfflineView() {
         </button>
       </div>
 
-      {tab === "playlists" && (
+      {tab === "collections" && (
         <GroupGrid
-          groups={playlists}
-          emptyTitle="No tienes playlists completas descargadas."
-          emptySub="Descarga una playlist entera desde su página para que aparezca aquí."
-          onOpen={setOpenPlaylist}
+          groups={collections}
+          emptyTitle="No tienes playlists ni listas de artista completas descargadas."
+          emptySub="Descarga una playlist, o la lista de un artista en tu biblioteca, para que aparezca aquí."
+          onOpen={setOpenCollection}
         />
       )}
 
@@ -278,7 +282,7 @@ export default function OfflineView() {
           <div className="empty">
             <p>No tienes canciones sueltas descargadas.</p>
             <p className="empty__sub">
-              Las canciones que descargues fuera de un álbum o playlist
+              Las canciones que descargues fuera de un álbum o una colección
               aparecen aquí.
             </p>
           </div>

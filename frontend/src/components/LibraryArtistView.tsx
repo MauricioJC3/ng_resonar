@@ -1,4 +1,5 @@
 import { useLibraryForArtist } from "../state/libraryArtist";
+import { downloadManyOffline } from "../state/offline";
 import { usePlayer } from "../state/player";
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { shuffled } from "../lib/shuffle";
@@ -66,6 +67,18 @@ export default function LibraryArtistView({
               title="Añadir todas a la cola"
             >
               <Icon name="queue" size={14} /> A la cola
+            </button>
+            <button
+              className="btn btn--ghost"
+              disabled={n === 0}
+              onClick={() =>
+                downloadManyOffline(mine.tracks, {
+                  collection: { id: `artist:${label}`, name: label },
+                })
+              }
+              title="Descargar esta lista para escuchar sin conexión"
+            >
+              <Icon name="offline" size={14} /> Sin conexión
             </button>
           </div>
           {(mine.savedCount > 0 || mine.inPlaylists.length > 0) && (

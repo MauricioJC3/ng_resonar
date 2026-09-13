@@ -14,7 +14,13 @@ import type { Track } from "../types";
 // login session, so a transient 401 (or even a real logout) must not wipe
 // them — that would be surprising and expensive to redo.
 
-export interface OfflinePlaylistRef {
+/**
+ * A "collection" is any dynamic, user-defined grouping of tracks that isn't
+ * a real YouTube Music album — a saved playlist, or the "En tu biblioteca ·
+ * <artista>" favourites-by-artist list. Both are just an id + a display
+ * name as far as offline grouping cares.
+ */
+export interface OfflineCollectionRef {
   id: string;
   name: string;
 }
@@ -29,21 +35,21 @@ export interface OfflineTrack extends Track {
   size?: number;
   downloadedAt?: number;
   /**
-   * Playlist(s) / album(s) this track was pulled offline *from* — as in,
-   * the user hit "Sin conexión" on that playlist/album page, not just that
-   * the song happens to carry that metadata. This is what "Sin conexión"
-   * groups by, deliberately independent of the track's own `album` field:
-   * downloading one song from search/the player only ever sets `status`,
-   * so it lands in "Canciones" regardless of what album it came from on
-   * YouTube Music — only downloading the whole album from its own page
-   * tags it into "Álbumes".
+   * Collection(s) / album(s) this track was pulled offline *from* — as in,
+   * the user hit "Sin conexión" on that playlist/artist-favourites/album
+   * page, not just that the song happens to carry that metadata. This is
+   * what "Sin conexión" groups by, deliberately independent of the track's
+   * own `album` field: downloading one song from search/the player only
+   * ever sets `status`, so it lands in "Canciones" regardless of what album
+   * it came from on YouTube Music — only downloading the whole album from
+   * its own page tags it into "Álbumes".
    */
-  playlists?: OfflinePlaylistRef[];
+  collections?: OfflineCollectionRef[];
   albums?: OfflineAlbumRef[];
 }
 
 interface OfflineSource {
-  playlist?: OfflinePlaylistRef;
+  collection?: OfflineCollectionRef;
   album?: OfflineAlbumRef;
 }
 
@@ -186,10 +192,10 @@ export function offlineTotalSize(items: OfflineTrack[]): number {
 
 /**
  * Download one track's audio into IndexedDB so it plays without a
- * connection. When `source` names the playlist/album it's coming from (its
- * "Sin conexión" button), the track is tagged with it — even if the track
- * was already offline from somewhere else — so it still shows up grouped
- * under that playlist/album.
+ * connection. When `source` names the collection/album it's coming from
+ * (its "Sin conexión" button), the track is tagged with it — even if the
+ * track was already offline from somewhere else — so it still shows up
+ * grouped under that collection/album.
  */
 export async function downloadOffline(
   track: Track,
@@ -197,10 +203,10 @@ export async function downloadOffline(
 ): Promise<void> {
   const existing = snapshot.find((t) => t.id === track.id);
   if (existing && existing.status !== "error") {
-    const playlists = mergeRef(existing.playlists, source?.playlist);
+    const collections = mergeRef(existing.collections, source?.collection);
     const albums = mergeRef(existing.albums, source?.album);
-    if (playlists !== existing.playlists || albums !== existing.albums) {
-      const updated = { ...existing, playlists, albums };
+    if (collections !== existing.collections || albums !== existing.albums) {
+      const updated = { ...existing, collections, albums };
       snapshot = snapshot.map((t) => (t.id === track.id ? updated : t));
       emit();
       try {
@@ -212,10 +218,10 @@ export async function downloadOffline(
     return;
   }
 
-  const playlists = mergeRef(existing?.playlists, source?.playlist);
+  const collections = mergeRef(existing?.collections, source?.collection);
   const albums = mergeRef(existing?.albums, source?.album);
   snapshot = [
-    { ...track, status: "downloading", playlists, albums },
+    { ...track, status: "downloading", collections, albums },
     ...snapshot.filter((t) => t.id !== track.id),
   ];
   emit();
@@ -229,7 +235,7 @@ export async function downloadOffline(
       status: "ready",
       size: blob.size,
       downloadedAt: Date.now(),
-      playlists,
+      collections,
       albums,
     };
     await idbPutBlob(track.id, blob);
