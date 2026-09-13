@@ -129,7 +129,7 @@ describe("offline store: downloads", () => {
     const pl = { id: "pl1", name: "Campo de Batalla" };
 
     await act(() =>
-      downloadManyOffline([track("dl-pl-a"), track("dl-pl-b")], pl),
+      downloadManyOffline([track("dl-pl-a"), track("dl-pl-b")], { playlist: pl }),
     );
 
     expect(
@@ -138,6 +138,31 @@ describe("offline store: downloads", () => {
     expect(
       result.current.find((t) => t.id === "dl-pl-b")?.playlists,
     ).toEqual([pl]);
+  });
+
+  it("tags tracks downloaded via downloadManyOffline with the given album", async () => {
+    mockFetchOk(2);
+    const { result } = renderHook(() => useOfflineTracks());
+    const alb = { id: "alb1", name: "Un Álbum" };
+
+    await act(() =>
+      downloadManyOffline([track("dl-alb-a")], { album: alb }),
+    );
+
+    expect(result.current.find((t) => t.id === "dl-alb-a")?.albums).toEqual([
+      alb,
+    ]);
+  });
+
+  it("does not tag a plain single-track download with any playlist/album", async () => {
+    mockFetchOk(2);
+    const { result } = renderHook(() => useOfflineTracks());
+
+    await act(() => downloadOffline(track("dl-solo")));
+
+    const entry = result.current.find((t) => t.id === "dl-solo");
+    expect(entry?.playlists).toBeUndefined();
+    expect(entry?.albums).toBeUndefined();
   });
 
   it("tags an already-offline track with a playlist instead of skipping it silently", async () => {
@@ -149,7 +174,7 @@ describe("offline store: downloads", () => {
     const fetchSpy = vi.mocked(fetch);
     fetchSpy.mockClear();
 
-    await act(() => downloadOffline(track("dl-tag-existing"), pl));
+    await act(() => downloadOffline(track("dl-tag-existing"), { playlist: pl }));
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(

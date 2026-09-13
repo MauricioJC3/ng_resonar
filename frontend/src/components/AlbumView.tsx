@@ -109,7 +109,11 @@ export default function AlbumView({
                 <button
                   className="btn btn--ghost"
                   disabled={!album.tracks.length}
-                  onClick={() => downloadManyOffline(album.tracks)}
+                  onClick={() =>
+                    downloadManyOffline(album.tracks, {
+                      album: { id: browseId, name: album.title },
+                    })
+                  }
                   title="Descargar todo el álbum para escuchar sin conexión"
                 >
                   <Icon name="offline" size={14} /> Sin conexión

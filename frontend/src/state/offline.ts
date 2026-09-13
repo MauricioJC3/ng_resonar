@@ -19,24 +19,40 @@ export interface OfflinePlaylistRef {
   name: string;
 }
 
+export interface OfflineAlbumRef {
+  id: string;
+  name: string;
+}
+
 export interface OfflineTrack extends Track {
   status: "downloading" | "ready" | "error";
   size?: number;
   downloadedAt?: number;
   /**
-   * Playlist(s) this track was pulled offline from — lets "Sin conexión"
-   * keep a playlist's tracks together regardless of each song's own album,
-   * since that's how the user actually grouped and downloaded them.
+   * Playlist(s) / album(s) this track was pulled offline *from* — as in,
+   * the user hit "Sin conexión" on that playlist/album page, not just that
+   * the song happens to carry that metadata. This is what "Sin conexión"
+   * groups by, deliberately independent of the track's own `album` field:
+   * downloading one song from search/the player only ever sets `status`,
+   * so it lands in "Canciones" regardless of what album it came from on
+   * YouTube Music — only downloading the whole album from its own page
+   * tags it into "Álbumes".
    */
   playlists?: OfflinePlaylistRef[];
+  albums?: OfflineAlbumRef[];
 }
 
-function mergePlaylistRef(
-  existing: OfflinePlaylistRef[] | undefined,
-  add: OfflinePlaylistRef | undefined,
-): OfflinePlaylistRef[] | undefined {
+interface OfflineSource {
+  playlist?: OfflinePlaylistRef;
+  album?: OfflineAlbumRef;
+}
+
+function mergeRef<T extends { id: string }>(
+  existing: T[] | undefined,
+  add: T | undefined,
+): T[] | undefined {
   if (!add) return existing;
-  if (existing?.some((p) => p.id === add.id)) return existing;
+  if (existing?.some((r) => r.id === add.id)) return existing;
   return [...(existing ?? []), add];
 }
 
@@ -170,20 +186,21 @@ export function offlineTotalSize(items: OfflineTrack[]): number {
 
 /**
  * Download one track's audio into IndexedDB so it plays without a
- * connection. When `playlist` is given (downloading from a playlist's "Sin
- * conexión" button), the track is tagged with it — even if the track was
- * already offline from somewhere else — so it still shows up grouped under
- * that playlist.
+ * connection. When `source` names the playlist/album it's coming from (its
+ * "Sin conexión" button), the track is tagged with it — even if the track
+ * was already offline from somewhere else — so it still shows up grouped
+ * under that playlist/album.
  */
 export async function downloadOffline(
   track: Track,
-  playlist?: OfflinePlaylistRef,
+  source?: OfflineSource,
 ): Promise<void> {
   const existing = snapshot.find((t) => t.id === track.id);
   if (existing && existing.status !== "error") {
-    const playlists = mergePlaylistRef(existing.playlists, playlist);
-    if (playlists !== existing.playlists) {
-      const updated = { ...existing, playlists };
+    const playlists = mergeRef(existing.playlists, source?.playlist);
+    const albums = mergeRef(existing.albums, source?.album);
+    if (playlists !== existing.playlists || albums !== existing.albums) {
+      const updated = { ...existing, playlists, albums };
       snapshot = snapshot.map((t) => (t.id === track.id ? updated : t));
       emit();
       try {
@@ -195,9 +212,10 @@ export async function downloadOffline(
     return;
   }
 
-  const playlists = mergePlaylistRef(existing?.playlists, playlist);
+  const playlists = mergeRef(existing?.playlists, source?.playlist);
+  const albums = mergeRef(existing?.albums, source?.album);
   snapshot = [
-    { ...track, status: "downloading", playlists },
+    { ...track, status: "downloading", playlists, albums },
     ...snapshot.filter((t) => t.id !== track.id),
   ];
   emit();
@@ -212,6 +230,7 @@ export async function downloadOffline(
       size: blob.size,
       downloadedAt: Date.now(),
       playlists,
+      albums,
     };
     await idbPutBlob(track.id, blob);
     await idbPutMeta(entry);
@@ -232,11 +251,11 @@ export async function downloadOffline(
  */
 export function downloadManyOffline(
   tracks: Track[],
-  playlist?: OfflinePlaylistRef,
+  source?: OfflineSource,
 ): Promise<void> {
   return (async () => {
     for (const t of tracks) {
-      await downloadOffline(t, playlist);
+      await downloadOffline(t, source);
     }
   })();
 }

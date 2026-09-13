@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { offlineTotalSize, useOfflineTracks } from "../state/offline";
-import type { OfflineTrack } from "../state/offline";
+import type { OfflineAlbumRef, OfflinePlaylistRef, OfflineTrack } from "../state/offline";
 import { usePlayer } from "../state/player";
 import { useListKeyboard } from "../lib/useListKeyboard";
 import { shuffled } from "../lib/shuffle";
@@ -13,17 +13,38 @@ function humanSize(bytes: number): string {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
 }
 
-interface AlbumGroup {
-  album: string;
-  thumbnail: string | null;
-  tracks: OfflineTrack[];
-}
-
-interface PlaylistGroup {
+interface Group {
   id: string;
   name: string;
   thumbnail: string | null;
   tracks: OfflineTrack[];
+}
+
+function groupByRef(
+  tracks: OfflineTrack[],
+  refsOf: (t: OfflineTrack) => (OfflinePlaylistRef | OfflineAlbumRef)[] | undefined,
+): { groups: Group[]; rest: OfflineTrack[] } {
+  const byId = new Map<string, Group>();
+  const rest: OfflineTrack[] = [];
+  for (const t of tracks) {
+    const refs = refsOf(t);
+    if (!refs?.length) {
+      rest.push(t);
+      continue;
+    }
+    for (const ref of refs) {
+      const group = byId.get(ref.id) ?? {
+        id: ref.id,
+        name: ref.name,
+        thumbnail: null,
+        tracks: [],
+      };
+      group.tracks.push(t);
+      if (!group.thumbnail && t.thumbnail) group.thumbnail = t.thumbnail;
+      byId.set(ref.id, group);
+    }
+  }
+  return { groups: [...byId.values()], rest };
 }
 
 /**
@@ -31,78 +52,37 @@ interface PlaylistGroup {
  * playlist's id/name (see `state/offline.ts`) — pull those out first so a
  * playlist's songs stay together in "Sin conexión" regardless of which
  * album each one originally belongs to. A track downloaded from more than
- * one playlist shows up under each. Whatever's left (downloaded from an
- * album page, or one track at a time) falls through to `groupByAlbum`.
+ * one playlist shows up under each. Whatever's left falls through to
+ * `groupByAlbum`.
  */
-export function groupByPlaylist(tracks: OfflineTrack[]): {
-  playlists: PlaylistGroup[];
-  rest: OfflineTrack[];
-} {
-  const byPlaylist = new Map<string, PlaylistGroup>();
-  const rest: OfflineTrack[] = [];
-  for (const t of tracks) {
-    if (!t.playlists?.length) {
-      rest.push(t);
-      continue;
-    }
-    for (const p of t.playlists) {
-      const group = byPlaylist.get(p.id) ?? {
-        id: p.id,
-        name: p.name,
-        thumbnail: null,
-        tracks: [],
-      };
-      group.tracks.push(t);
-      if (!group.thumbnail && t.thumbnail) group.thumbnail = t.thumbnail;
-      byPlaylist.set(p.id, group);
-    }
-  }
-  return { playlists: [...byPlaylist.values()], rest };
+export function groupByPlaylist(
+  tracks: OfflineTrack[],
+): { playlists: Group[]; rest: OfflineTrack[] } {
+  const { groups, rest } = groupByRef(tracks, (t) => t.playlists);
+  return { playlists: groups, rest };
 }
 
 /**
- * Downloaded tracks that carry an `album` name group under "Álbumes" (so a
- * fully-downloaded album stays organized instead of dissolving into loose
- * songs); everything else — singles, favorites downloaded one at a time —
- * lands under "Canciones". Grouping is by album title alone (no album id is
- * stored per track), so two different albums that happen to share a title
- * would merge — an edge case rare enough not to worry about here.
+ * Tracks downloaded via an album's own "Sin conexión" button carry that
+ * album's id/name — deliberately *not* just the track's own `album` field,
+ * so downloading one song from search/the player (which still carries that
+ * song's album metadata) doesn't get mistaken for "the whole album was
+ * downloaded" and land in "Álbumes" instead of "Canciones". Everything left
+ * without an album tag (singles, one-off downloads) is `loose`.
  */
-export function groupByAlbum(tracks: OfflineTrack[]): {
-  albums: AlbumGroup[];
-  loose: OfflineTrack[];
-} {
-  const byAlbum = new Map<string, OfflineTrack[]>();
-  const loose: OfflineTrack[] = [];
-  for (const t of tracks) {
-    if (t.album) {
-      const list = byAlbum.get(t.album) ?? [];
-      list.push(t);
-      byAlbum.set(t.album, list);
-    } else {
-      loose.push(t);
-    }
-  }
-  const albums = [...byAlbum.entries()].map(([album, albumTracks]) => ({
-    album,
-    thumbnail: albumTracks.find((t) => t.thumbnail)?.thumbnail ?? null,
-    tracks: albumTracks,
-  }));
-  return { albums, loose };
+export function groupByAlbum(
+  tracks: OfflineTrack[],
+): { albums: Group[]; loose: OfflineTrack[] } {
+  const { groups, rest } = groupByRef(tracks, (t) => t.albums);
+  return { albums: groups, loose: rest };
 }
 
 /** Shared "open group" screen for a playlist or album inside Sin conexión. */
 function GroupDetail({
-  title,
-  thumbnail,
-  tracks,
-  meta,
+  group,
   onBack,
 }: {
-  title: string;
-  thumbnail: string | null;
-  tracks: OfflineTrack[];
-  meta: string;
+  group: Group;
   onBack: () => void;
 }) {
   const { playList } = usePlayer();
@@ -114,25 +94,30 @@ function GroupDetail({
 
       <div className="pldetail__head">
         <div className="pldetail__art">
-          {thumbnail ? (
-            <img src={thumbnail} alt="" />
+          {group.thumbnail ? (
+            <img src={group.thumbnail} alt="" />
           ) : (
             <Icon name="list" size={30} />
           )}
         </div>
         <div className="pldetail__meta">
-          <h1>{title}</h1>
-          <p>{meta}</p>
+          <h1>{group.name}</h1>
+          <p>
+            {[
+              `${group.tracks.length} pistas`,
+              humanSize(offlineTotalSize(group.tracks)),
+            ].join(" · ")}
+          </p>
           <div className="pldetail__actions">
             <button
               className="btn btn--accent"
-              onClick={() => playList(tracks, 0)}
+              onClick={() => playList(group.tracks, 0)}
             >
               <Icon name="play" size={14} filled /> Reproducir
             </button>
             <button
               className="btn"
-              onClick={() => playList(shuffled(tracks), 0)}
+              onClick={() => playList(shuffled(group.tracks), 0)}
             >
               <Icon name="shuffle" size={14} /> Aleatorio
             </button>
@@ -141,15 +126,56 @@ function GroupDetail({
       </div>
 
       <div className="tracklist">
-        {tracks.map((track, i) => (
+        {group.tracks.map((track, i) => (
           <TrackRow
             key={track.id}
             track={track}
             index={i}
-            onPlay={() => playList(tracks, i)}
+            onPlay={() => playList(group.tracks, i)}
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Shared grid of group cards for the Playlists / Álbumes tabs. */
+function GroupGrid({
+  groups,
+  emptyTitle,
+  emptySub,
+  onOpen,
+}: {
+  groups: Group[];
+  emptyTitle: string;
+  emptySub: string;
+  onOpen: (id: string) => void;
+}) {
+  if (groups.length === 0) {
+    return (
+      <div className="empty">
+        <p>{emptyTitle}</p>
+        <p className="empty__sub">{emptySub}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="albumgrid">
+      {groups.map((g) => (
+        <button key={g.id} className="albumcard" onClick={() => onOpen(g.id)}>
+          <span className="albumcard__art">
+            {g.thumbnail ? (
+              <img src={g.thumbnail} alt="" loading="lazy" />
+            ) : (
+              <Icon name="list" size={22} />
+            )}
+          </span>
+          <span className="albumcard__title">{g.name}</span>
+          <span className="albumcard__meta">
+            {g.tracks.length} canción{g.tracks.length === 1 ? "" : "es"}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -167,7 +193,7 @@ export default function OfflineView() {
     ? playlists.find((p) => p.id === openPlaylist) ?? null
     : null;
   const activeAlbum = openAlbum
-    ? albums.find((a) => a.album === openAlbum) ?? null
+    ? albums.find((a) => a.id === openAlbum) ?? null
     : null;
 
   const { activeIndex, listRef } = useListKeyboard(
@@ -193,33 +219,11 @@ export default function OfflineView() {
   }
 
   if (activePlaylist) {
-    return (
-      <GroupDetail
-        title={activePlaylist.name}
-        thumbnail={activePlaylist.thumbnail}
-        tracks={activePlaylist.tracks}
-        meta={[
-          `${activePlaylist.tracks.length} pistas`,
-          humanSize(offlineTotalSize(activePlaylist.tracks)),
-        ].join(" · ")}
-        onBack={() => setOpenPlaylist(null)}
-      />
-    );
+    return <GroupDetail group={activePlaylist} onBack={() => setOpenPlaylist(null)} />;
   }
 
   if (activeAlbum) {
-    return (
-      <GroupDetail
-        title={activeAlbum.album}
-        thumbnail={activeAlbum.thumbnail}
-        tracks={activeAlbum.tracks}
-        meta={[
-          `${activeAlbum.tracks.length} pistas`,
-          humanSize(offlineTotalSize(activeAlbum.tracks)),
-        ].join(" · ")}
-        onBack={() => setOpenAlbum(null)}
-      />
-    );
+    return <GroupDetail group={activeAlbum} onBack={() => setOpenAlbum(null)} />;
   }
 
   return (
@@ -251,70 +255,23 @@ export default function OfflineView() {
         </button>
       </div>
 
-      {tab === "playlists" &&
-        (playlists.length === 0 ? (
-          <div className="empty">
-            <p>No tienes playlists completas descargadas.</p>
-            <p className="empty__sub">
-              Descarga una playlist entera desde su página para que aparezca
-              aquí.
-            </p>
-          </div>
-        ) : (
-          <div className="albumgrid">
-            {playlists.map((p) => (
-              <button
-                key={p.id}
-                className="albumcard"
-                onClick={() => setOpenPlaylist(p.id)}
-              >
-                <span className="albumcard__art">
-                  {p.thumbnail ? (
-                    <img src={p.thumbnail} alt="" loading="lazy" />
-                  ) : (
-                    <Icon name="list" size={22} />
-                  )}
-                </span>
-                <span className="albumcard__title">{p.name}</span>
-                <span className="albumcard__meta">
-                  {p.tracks.length} canción{p.tracks.length === 1 ? "" : "es"}
-                </span>
-              </button>
-            ))}
-          </div>
-        ))}
+      {tab === "playlists" && (
+        <GroupGrid
+          groups={playlists}
+          emptyTitle="No tienes playlists completas descargadas."
+          emptySub="Descarga una playlist entera desde su página para que aparezca aquí."
+          onOpen={setOpenPlaylist}
+        />
+      )}
 
-      {tab === "albums" &&
-        (albums.length === 0 ? (
-          <div className="empty">
-            <p>No tienes álbumes completos descargados.</p>
-            <p className="empty__sub">
-              Descarga un álbum entero desde su página para que aparezca aquí.
-            </p>
-          </div>
-        ) : (
-          <div className="albumgrid">
-            {albums.map((a) => (
-              <button
-                key={a.album}
-                className="albumcard"
-                onClick={() => setOpenAlbum(a.album)}
-              >
-                <span className="albumcard__art">
-                  {a.thumbnail ? (
-                    <img src={a.thumbnail} alt="" loading="lazy" />
-                  ) : (
-                    <Icon name="list" size={22} />
-                  )}
-                </span>
-                <span className="albumcard__title">{a.album}</span>
-                <span className="albumcard__meta">
-                  {a.tracks.length} canción{a.tracks.length === 1 ? "" : "es"}
-                </span>
-              </button>
-            ))}
-          </div>
-        ))}
+      {tab === "albums" && (
+        <GroupGrid
+          groups={albums}
+          emptyTitle="No tienes álbumes completos descargados."
+          emptySub="Descarga un álbum entero desde su página para que aparezca aquí."
+          onOpen={setOpenAlbum}
+        />
+      )}
 
       {tab === "songs" &&
         (loose.length === 0 ? (
