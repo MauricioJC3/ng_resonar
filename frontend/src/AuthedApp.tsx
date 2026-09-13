@@ -53,8 +53,9 @@ function prefersReducedMotion(): boolean {
 
 /**
  * The authenticated application shell — the pre-auth `App` component, verbatim,
- * plus an `onLogout` prop threaded to `Nav`. It only ever mounts under the
- * `authed` gate, so its history/popstate effects never run on the login screen.
+ * plus an `onLogout` prop threaded to `SettingsView` (the only place to log out;
+ * see Nav.tsx). It only ever mounts under the `authed` gate, so its
+ * history/popstate effects never run on the login screen.
  */
 export default function AuthedApp({
   user,
@@ -270,7 +271,7 @@ export default function AuthedApp({
     <PlayerProvider>
       <VideoProvider>
         <div className="app">
-          <Nav view={view} onNavigate={navigate} onLogout={onLogout} />
+          <Nav view={view} onNavigate={navigate} />
           <main className="main" ref={mainRef}>
             {content}
           </main>

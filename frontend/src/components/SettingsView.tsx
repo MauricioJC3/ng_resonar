@@ -73,9 +73,8 @@ export default function SettingsView({ user, onLogout, onNavigate }: Props) {
     </section>
   );
 
-  // Mobile-only: Videos, Sin conexión and Historial dropped off the bottom
-  // nav bar to keep it at 5 tabs (see Nav.tsx), so they need a way back in
-  // on a phone.
+  // Mobile-only: Videos and Historial dropped off the bottom nav bar to keep
+  // it at 6 tabs (see Nav.tsx), so they need a way back in on a phone.
   const quickLinksSection = (
     <section className="card settings__quicklinks">
       <div className="card__head">
@@ -84,9 +83,6 @@ export default function SettingsView({ user, onLogout, onNavigate }: Props) {
       <div className="settings__quicklinks-row">
         <button className="btn" onClick={() => onNavigate("videos")}>
           <Icon name="video" size={15} /> Videos
-        </button>
-        <button className="btn" onClick={() => onNavigate("offline")}>
-          <Icon name="offline" size={15} /> Sin conexión
         </button>
         <button className="btn" onClick={() => onNavigate("history")}>
           <Icon name="history" size={15} /> Historial

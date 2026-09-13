@@ -8,7 +8,7 @@ import Icon from "./Icon";
 const COLLAPSE_KEY = "resonar:navcollapsed";
 
 // `mobilePrimary: false` items still show on the desktop rail but drop out of
-// the mobile bottom bar (5 tabs fit; 7 wrapped their labels unevenly on
+// the mobile bottom bar (6 tabs fit; more wrapped their labels unevenly on
 // narrow screens). Reachable on mobile from "Ajustes" > Accesos rápidos.
 const NAV: { id: View; label: string; icon: string; mobilePrimary?: boolean }[] = [
   { id: "home", label: "Inicio", icon: "home" },
@@ -16,7 +16,7 @@ const NAV: { id: View; label: string; icon: string; mobilePrimary?: boolean }[] 
   { id: "videos", label: "Videos", icon: "video", mobilePrimary: false },
   { id: "playlists", label: "Playlists", icon: "list" },
   { id: "library", label: "Biblioteca", icon: "heart" },
-  { id: "offline", label: "Sin conexión", icon: "offline", mobilePrimary: false },
+  { id: "offline", label: "Sin conexión", icon: "offline" },
   { id: "history", label: "Historial", icon: "history", mobilePrimary: false },
   { id: "settings", label: "Ajustes", icon: "settings" },
 ];
@@ -24,11 +24,9 @@ const NAV: { id: View; label: string; icon: string; mobilePrimary?: boolean }[] 
 export default function Nav({
   view,
   onNavigate,
-  onLogout,
 }: {
   view: View;
   onNavigate: (v: View) => void;
-  onLogout?: () => void;
 }) {
   const library = useLibrary();
   const [dropActive, setDropActive] = useState(false);
@@ -122,17 +120,6 @@ export default function Nav({
           );
         })}
       </div>
-
-      {onLogout && (
-        <button
-          type="button"
-          className="btn btn--ghost nav__logout"
-          onClick={onLogout}
-        >
-          <Icon name="settings" size={16} />
-          <span className="nav__label">Cerrar sesión</span>
-        </button>
-      )}
 
       <p className="nav__note">
         Reproducción y descargas desde fuentes públicas. Pensado para uso

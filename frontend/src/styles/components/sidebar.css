@@ -88,11 +88,6 @@
     font-size: 10px;
     line-height: 1.5;
   }
-
-  .nav--collapsed .nav__logout {
-    align-self: center;
-    padding: 10px;
-  }
 }
 
 .nav__logo {
@@ -155,11 +150,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.nav__logout {
-  margin-top: auto;
-  align-self: flex-start;
-}
-
 .nav__note {
   margin-top: auto;
   font-size: 12px;
@@ -183,7 +173,6 @@
   }
 
   .nav__brand,
-  .nav__logout,
   .nav__note {
     display: none;
   }
@@ -204,7 +193,7 @@
     font-weight: 600;
   }
 
-  /* Keeps the bar at 5 tabs so labels never wrap unevenly on narrow phones.
+  /* Keeps the bar at 6 tabs so labels never wrap unevenly on narrow phones.
      These stay reachable from Ajustes > Accesos rápidos. */
   .nav__item--desktop-only {
     display: none;
