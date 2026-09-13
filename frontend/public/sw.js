@@ -1,7 +1,7 @@
 /* Minimal service worker: makes Resonar installable and lets the app shell
    load without network. It never caches /api/ (streams, search, scrobbles). */
 
-const CACHE = "resonar-shell-v4";
+const CACHE = "resonar-shell-v5";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -29,10 +29,23 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
 
-  // Navigations: network first, fall back to cached shell (offline).
+  // Navigations: network first, refreshing the cached shell on every
+  // successful load, so the offline fallback below is never staler than the
+  // last time the app was actually reachable — otherwise a fix shipped here
+  // would never reach a device that only ever reopens the app offline,
+  // since the *old* cached index.html (referencing the *old* JS bundle) is
+  // exactly what "offline" would keep serving forever.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("/index.html")),
+      fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put("/index.html", copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match("/index.html")),
     );
     return;
   }
