@@ -8,6 +8,7 @@ import VideosView from "./components/VideosView";
 import PlaylistsView from "./components/PlaylistsView";
 import PlaylistDetailView from "./components/PlaylistDetailView";
 import LibraryView from "./components/LibraryView";
+import OfflineView from "./components/OfflineView";
 import HistoryView from "./components/HistoryView";
 import AlbumView from "./components/AlbumView";
 import ArtistView from "./components/ArtistView";
@@ -253,6 +254,8 @@ export default function AuthedApp({
     content = <VideosView onWatch={watch} />;
   } else if (view === "playlists") {
     content = <PlaylistsView onOpen={openPlaylistDetail} />;
+  } else if (view === "offline") {
+    content = <OfflineView />;
   } else if (view === "history") {
     content = <HistoryView onWatch={watch} />;
   } else if (view === "settings") {

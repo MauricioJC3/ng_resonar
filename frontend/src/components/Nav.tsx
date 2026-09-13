@@ -16,6 +16,7 @@ const NAV: { id: View; label: string; icon: string; mobilePrimary?: boolean }[] 
   { id: "videos", label: "Videos", icon: "video", mobilePrimary: false },
   { id: "playlists", label: "Playlists", icon: "list" },
   { id: "library", label: "Biblioteca", icon: "heart" },
+  { id: "offline", label: "Sin conexión", icon: "offline", mobilePrimary: false },
   { id: "history", label: "Historial", icon: "history", mobilePrimary: false },
   { id: "settings", label: "Ajustes", icon: "settings" },
 ];

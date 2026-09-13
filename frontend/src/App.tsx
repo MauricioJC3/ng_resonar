@@ -15,6 +15,7 @@ export type View =
   | "videos"
   | "playlists"
   | "library"
+  | "offline"
   | "history"
   | "settings";
 
