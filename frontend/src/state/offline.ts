@@ -14,10 +14,30 @@ import type { Track } from "../types";
 // login session, so a transient 401 (or even a real logout) must not wipe
 // them — that would be surprising and expensive to redo.
 
+export interface OfflinePlaylistRef {
+  id: string;
+  name: string;
+}
+
 export interface OfflineTrack extends Track {
   status: "downloading" | "ready" | "error";
   size?: number;
   downloadedAt?: number;
+  /**
+   * Playlist(s) this track was pulled offline from — lets "Sin conexión"
+   * keep a playlist's tracks together regardless of each song's own album,
+   * since that's how the user actually grouped and downloaded them.
+   */
+  playlists?: OfflinePlaylistRef[];
+}
+
+function mergePlaylistRef(
+  existing: OfflinePlaylistRef[] | undefined,
+  add: OfflinePlaylistRef | undefined,
+): OfflinePlaylistRef[] | undefined {
+  if (!add) return existing;
+  if (existing?.some((p) => p.id === add.id)) return existing;
+  return [...(existing ?? []), add];
 }
 
 const DB_NAME = "resonar-offline";
@@ -148,12 +168,36 @@ export function offlineTotalSize(items: OfflineTrack[]): number {
   return items.reduce((sum, t) => sum + (t.size ?? 0), 0);
 }
 
-/** Download one track's audio into IndexedDB so it plays without a connection. */
-export async function downloadOffline(track: Track): Promise<void> {
-  if (snapshot.some((t) => t.id === track.id && t.status !== "error")) return;
+/**
+ * Download one track's audio into IndexedDB so it plays without a
+ * connection. When `playlist` is given (downloading from a playlist's "Sin
+ * conexión" button), the track is tagged with it — even if the track was
+ * already offline from somewhere else — so it still shows up grouped under
+ * that playlist.
+ */
+export async function downloadOffline(
+  track: Track,
+  playlist?: OfflinePlaylistRef,
+): Promise<void> {
+  const existing = snapshot.find((t) => t.id === track.id);
+  if (existing && existing.status !== "error") {
+    const playlists = mergePlaylistRef(existing.playlists, playlist);
+    if (playlists !== existing.playlists) {
+      const updated = { ...existing, playlists };
+      snapshot = snapshot.map((t) => (t.id === track.id ? updated : t));
+      emit();
+      try {
+        await idbPutMeta(updated);
+      } catch {
+        /* ignore */
+      }
+    }
+    return;
+  }
 
+  const playlists = mergePlaylistRef(existing?.playlists, playlist);
   snapshot = [
-    { ...track, status: "downloading" },
+    { ...track, status: "downloading", playlists },
     ...snapshot.filter((t) => t.id !== track.id),
   ];
   emit();
@@ -167,6 +211,7 @@ export async function downloadOffline(track: Track): Promise<void> {
       status: "ready",
       size: blob.size,
       downloadedAt: Date.now(),
+      playlists,
     };
     await idbPutBlob(track.id, blob);
     await idbPutMeta(entry);
@@ -185,11 +230,13 @@ export async function downloadOffline(track: Track): Promise<void> {
  * "listen offline"). Callers fire-and-forget this — the reactive list is how
  * progress shows up — but the returned promise lets tests await it too.
  */
-export function downloadManyOffline(tracks: Track[]): Promise<void> {
+export function downloadManyOffline(
+  tracks: Track[],
+  playlist?: OfflinePlaylistRef,
+): Promise<void> {
   return (async () => {
     for (const t of tracks) {
-      if (snapshot.some((s) => s.id === t.id && s.status !== "error")) continue;
-      await downloadOffline(t);
+      await downloadOffline(t, playlist);
     }
   })();
 }

@@ -136,7 +136,7 @@ export default function PlaylistDetailView({
             <button
               className="btn btn--ghost"
               disabled={!pl.tracks.length}
-              onClick={() => downloadManyOffline(pl.tracks)}
+              onClick={() => downloadManyOffline(pl.tracks, { id, name: pl.name })}
               title="Descargar toda la playlist para escuchar sin conexión"
             >
               <Icon name="offline" size={14} /> Sin conexión

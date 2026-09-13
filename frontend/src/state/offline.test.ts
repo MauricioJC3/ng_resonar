@@ -122,4 +122,38 @@ describe("offline store: downloads", () => {
     expect(offlineStatus("dl-many-a", result.current)).toBe("ready");
     expect(offlineStatus("dl-many-b", result.current)).toBe("ready");
   });
+
+  it("tags tracks downloaded via downloadManyOffline with the given playlist", async () => {
+    mockFetchOk(2);
+    const { result } = renderHook(() => useOfflineTracks());
+    const pl = { id: "pl1", name: "Campo de Batalla" };
+
+    await act(() =>
+      downloadManyOffline([track("dl-pl-a"), track("dl-pl-b")], pl),
+    );
+
+    expect(
+      result.current.find((t) => t.id === "dl-pl-a")?.playlists,
+    ).toEqual([pl]);
+    expect(
+      result.current.find((t) => t.id === "dl-pl-b")?.playlists,
+    ).toEqual([pl]);
+  });
+
+  it("tags an already-offline track with a playlist instead of skipping it silently", async () => {
+    mockFetchOk(2);
+    const { result } = renderHook(() => useOfflineTracks());
+    const pl = { id: "pl2", name: "Otra playlist" };
+
+    await act(() => downloadOffline(track("dl-tag-existing")));
+    const fetchSpy = vi.mocked(fetch);
+    fetchSpy.mockClear();
+
+    await act(() => downloadOffline(track("dl-tag-existing"), pl));
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(
+      result.current.find((t) => t.id === "dl-tag-existing")?.playlists,
+    ).toEqual([pl]);
+  });
 });
