@@ -27,6 +27,7 @@ vi.mock("../state/library", () => ({
 
 vi.mock("../state/playlists", () => ({
   usePlaylists: () => [],
+  useAllPlaylistDetails: () => [],
 }));
 
 function press(key: string) {

@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { Track } from "../types";
-import { addToPlaylist, createPlaylist, usePlaylists } from "../state/playlists";
+import {
+  addToPlaylist,
+  createPlaylist,
+  useAllPlaylistDetails,
+  usePlaylists,
+} from "../state/playlists";
 import Icon from "./Icon";
 
 /**
@@ -33,6 +38,19 @@ export default function AddToPlaylistButton({
     left: 0,
     bottom: 0,
   });
+
+  // Only fetched once the menu is actually opened (see useAllPlaylistDetails'
+  // `enabled`), and only meaningful for a single track — an album/playlist
+  // "add all" button passes an array, for which "already in" is ambiguous.
+  const details = useAllPlaylistDetails(open && !Array.isArray(track));
+  const containingIds = useMemo(() => {
+    if (Array.isArray(track)) return new Set<string>();
+    const ids = new Set<string>();
+    for (const pl of details) {
+      if (pl.tracks.some((t) => t.id === track.id)) ids.add(pl.id);
+    }
+    return ids;
+  }, [details, track]);
 
   function toggle() {
     if (!open && btnRef.current) {
@@ -90,11 +108,21 @@ export default function AddToPlaylistButton({
             {playlists.length === 0 && (
               <li className="track__menu-empty">Sin playlists</li>
             )}
-            {playlists.map((p) => (
-              <li key={p.id}>
-                <button onMouseDown={() => addTo(p.id)}>{p.name}</button>
-              </li>
-            ))}
+            {playlists.map((p) => {
+              const already = containingIds.has(p.id);
+              return (
+                <li key={p.id}>
+                  <button
+                    className={already ? "track__menu-item--in" : undefined}
+                    title={already ? "Ya está en esta playlist" : undefined}
+                    onMouseDown={() => addTo(p.id)}
+                  >
+                    {already && <Icon name="check" size={12} />}
+                    <span>{p.name}</span>
+                  </button>
+                </li>
+              );
+            })}
             <li className="track__menu-sep">
               <button onMouseDown={addToNew}>＋ Nueva playlist…</button>
             </li>

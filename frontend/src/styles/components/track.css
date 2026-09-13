@@ -209,6 +209,14 @@
   color: var(--text);
 }
 
+/* "Añadir a una playlist" menu: marks playlists that already have this track. */
+.track__menu button.track__menu-item--in {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+
 .track__menu--wide {
   min-width: 190px;
   max-height: 280px;
